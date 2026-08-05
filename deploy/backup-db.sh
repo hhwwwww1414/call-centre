@@ -19,6 +19,21 @@ set +a
 
 [[ -n "${DATABASE_URL:-}" ]] || { echo 'В .env не задан DATABASE_URL' >&2; exit 1; }
 
+# В DATABASE_URL живут параметры Prisma (schema, connection_limit), которых
+# libpq не знает: pg_dump на них падает с "invalid URI query parameter".
+# Вырезаем их, остальное — sslmode и прочее — оставляем как есть.
+strip_prisma_params() {
+  local url="$1"
+  for param in schema connection_limit pool_timeout connect_timeout socket_timeout pgbouncer; do
+    url="$(printf '%s' "$url" | sed -E "s/([?&])${param}=[^&]*(&|$)/\1/g")"
+  done
+  # Подчищаем осиротевшие разделители после вырезания
+  url="$(printf '%s' "$url" | sed -E 's/[?&]+$//; s/\?&/?/; s/&&+/\&/g')"
+  printf '%s' "$url"
+}
+
+DUMP_URL="$(strip_prisma_params "$DATABASE_URL")"
+
 mkdir -p "$BACKUP_DIR"
 chmod 700 "$BACKUP_DIR"
 
@@ -32,9 +47,9 @@ echo "[$(date --iso-8601=seconds)] Дамп → $FILE"
 # видны в списке процессов
 docker run --rm \
   -e "PGCONNECT_TIMEOUT=15" \
-  -e "DATABASE_URL=$DATABASE_URL" \
+  -e "DUMP_URL=$DUMP_URL" \
   postgres:18-alpine \
-  sh -c 'pg_dump --no-owner --no-privileges --format=plain "$DATABASE_URL"' \
+  sh -c 'pg_dump --no-owner --no-privileges --format=plain "$DUMP_URL"' \
   | gzip -9 > "$FILE"
 
 chmod 600 "$FILE"

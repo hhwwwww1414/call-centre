@@ -18,13 +18,27 @@ set -a
 source .env
 set +a
 
-TARGET="${TARGET_DATABASE_URL:-$DATABASE_URL}"
+# Как и в backup-db.sh: libpq не понимает параметры Prisma в URI
+strip_prisma_params() {
+  local url="$1"
+  for param in schema connection_limit pool_timeout connect_timeout socket_timeout pgbouncer; do
+    url="$(printf '%s' "$url" | sed -E "s/([?&])${param}=[^&]*(&|$)/\1/g")"
+  done
+  url="$(printf '%s' "$url" | sed -E 's/[?&]+$//; s/\?&/?/; s/&&+/\&/g')"
+  printf '%s' "$url"
+}
 
-if [[ "$TARGET" == "$DATABASE_URL" ]]; then
+TARGET_RAW="${TARGET_DATABASE_URL:-$DATABASE_URL}"
+
+# Сравниваем ДО очистки: после неё строка перестала бы совпадать с боевой,
+# и подтверждение молча перестало бы спрашиваться
+if [[ "$TARGET_RAW" == "$DATABASE_URL" ]]; then
   echo 'ВНИМАНИЕ: восстановление в БОЕВУЮ базу. Текущие данные будут заменены.'
   read -r -p 'Введите RESTORE для подтверждения: ' CONFIRM
   [[ "$CONFIRM" == 'RESTORE' ]] || { echo 'Отменено'; exit 1; }
 fi
+
+TARGET="$(strip_prisma_params "$TARGET_RAW")"
 
 echo "Восстанавливаем $DUMP"
 
