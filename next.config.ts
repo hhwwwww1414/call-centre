@@ -25,11 +25,10 @@ const nextConfig: NextConfig = {
   output: 'standalone',
   reactStrictMode: true,
   poweredByHeader: false,
-  outputFileTracingIncludes: {
-    // Движок Prisma — бинарник, трассировщик его сам не видит.
-    // Путь через .pnpm/: под pnpm пакеты лежат не в корне node_modules.
-    '/api/**/*': ['./node_modules/.pnpm/**/.prisma/client/*.node'],
-  },
+  // outputFileTracingIncludes намеренно не используется: glob с `**` по
+  // node_modules/.pnpm заставляет трассировщик обходить весь стор и съедает
+  // всю память сборки. Движок Prisma докладывается в образ отдельным COPY
+  // в Dockerfile — там путь известен точно.
   serverExternalPackages: ['@node-rs/argon2', 'pino', 'exceljs'],
   experimental: {
     // forbidden()/unauthorized() из next/navigation — рендерят app/forbidden.tsx

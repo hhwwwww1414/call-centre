@@ -37,6 +37,16 @@ ENV DATABASE_URL="postgresql://build:build@localhost:5432/build?schema=public"
 
 RUN pnpm exec prisma generate && pnpm exec next build
 
+# Движок Prisma — нативный бинарник, трассировщик Next его не видит.
+# Собираем сгенерированный клиент в предсказуемое место: под pnpm он лежит
+# внутри .pnpm/@prisma+client@…/, и путь в COPY заранее не выписать.
+RUN set -eux; \
+    src="$(dirname "$(find /app/node_modules/.pnpm -path '*/.prisma/client/default.js' -print -quit)")"; \
+    mkdir -p /prisma-client; \
+    cp -a "$src/." /prisma-client/; \
+    ls -1 /prisma-client | head -20; \
+    test -n "$(find /prisma-client -name 'libquery_engine*' -o -name '*.node' | head -1)"
+
 # ─── migrator ───────────────────────────────────────────────────────────────
 # Отдельная стадия под `prisma migrate deploy`: CLI и движки миграций весят
 # сотни мегабайт, в рантайме они не нужны. Запускается разово из deploy.sh.
@@ -71,6 +81,10 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 # Схема — для отладки и как источник правды о структуре БД рядом с кодом
 COPY --from=builder --chown=nextjs:nodejs /app/prisma/schema.prisma ./prisma/schema.prisma
+
+# Клиент Prisma вместе с движком запроса: standalone тянет JS-обёртку,
+# но нативный бинарник в трассировку не попадает
+COPY --from=builder --chown=nextjs:nodejs /prisma-client ./node_modules/.prisma/client
 
 USER nextjs
 
