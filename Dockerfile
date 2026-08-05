@@ -33,6 +33,14 @@ ENV DATABASE_URL="postgresql://build:build@localhost:5432/build?schema=public"
 
 RUN pnpm exec prisma generate && pnpm exec next build
 
+# ─── migrator ───────────────────────────────────────────────────────────────
+# Отдельная стадия под `prisma migrate deploy`: CLI и движки миграций весят
+# сотни мегабайт, в рантайме они не нужны. Запускается разово из deploy.sh.
+FROM builder AS migrator
+WORKDIR /app
+ENV DATABASE_URL=""
+CMD ["pnpm", "exec", "prisma", "migrate", "deploy"]
+
 # ─── runner ─────────────────────────────────────────────────────────────────
 FROM node:22-alpine AS runner
 WORKDIR /app
@@ -48,15 +56,15 @@ ENV HOSTNAME=0.0.0.0
 
 COPY --from=builder /app/public ./public
 
-# output: 'standalone' — в образ едет только реально нужный код
+# output: 'standalone' — Next сам трассирует зависимости и кладёт в образ
+# только реально используемый код, включая клиент Prisma и его движок.
+# Вручную node_modules не копируем: под pnpm раскладка другая
+# (@prisma/client лежит в .pnpm/, а не в node_modules/.prisma).
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Схема и миграции: контейнер умеет сам применить prisma migrate deploy
-COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/prisma ./node_modules/prisma
+# Схема — для отладки и как источник правды о структуре БД рядом с кодом
+COPY --from=builder --chown=nextjs:nodejs /app/prisma/schema.prisma ./prisma/schema.prisma
 
 USER nextjs
 

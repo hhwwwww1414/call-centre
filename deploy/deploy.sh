@@ -33,14 +33,13 @@ BUILD_VERSION="$(git rev-parse --short HEAD)-$(date +%Y%m%d%H%M)"
 export BUILD_VERSION
 log "Версия сборки: $BUILD_VERSION"
 
-log 'Собираем образ'
-docker compose build --build-arg "BUILD_VERSION=$BUILD_VERSION"
+log 'Собираем образы'
+docker compose --profile tools build --build-arg "BUILD_VERSION=$BUILD_VERSION"
 
 log 'Применяем миграции'
-# Отдельный одноразовый контейнер: миграции должны пройти до перезапуска,
-# иначе новый код встретит старую схему
-docker compose run --rm --no-deps --entrypoint '' app \
-  node_modules/.bin/prisma migrate deploy
+# Миграции идут до перезапуска, иначе новый код встретит старую схему.
+# Prisma CLI живёт в отдельном образе migrator — в рантайме его нет
+docker compose run --rm --no-deps migrate
 
 log 'Перезапускаем приложение'
 # --wait поднимает новый контейнер и ждёт healthcheck, старый живёт до этого

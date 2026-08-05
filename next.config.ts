@@ -26,7 +26,9 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   outputFileTracingIncludes: {
-    '/api/**/*': ['./node_modules/.prisma/client/**/*'],
+    // Движок Prisma — бинарник, трассировщик его сам не видит.
+    // Путь через .pnpm/: под pnpm пакеты лежат не в корне node_modules.
+    '/api/**/*': ['./node_modules/.pnpm/**/.prisma/client/*.node'],
   },
   serverExternalPackages: ['@node-rs/argon2', 'pino', 'exceljs'],
   experimental: {

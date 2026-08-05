@@ -32,3 +32,18 @@ services:
         max-file: '5'
     security_opt:
       - no-new-privileges:true
+
+  # Разовый контейнер под миграции: в нём есть Prisma CLI, которого
+  # намеренно нет в рантайм-образе. Запускается только из deploy.sh
+  # (`docker compose run --rm migrate`), сам по себе не поднимается.
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: migrator
+    image: vin2win-crm-migrate:${BUILD_VERSION:-latest}
+    env_file:
+      - .env
+    profiles:
+      - tools
+    restart: 'no'
