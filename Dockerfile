@@ -26,8 +26,10 @@ COPY . .
 ARG BUILD_VERSION=dev
 ENV BUILD_VERSION=$BUILD_VERSION
 ENV NEXT_TELEMETRY_DISABLED=1
-# Потолок кучи: на VPS с 4 ГБ сборка иначе уходит в OOM и падает без внятной ошибки
-ENV NODE_OPTIONS=--max-old-space-size=2048
+# Потолок кучи: на VPS с 4 ГБ сборка иначе уходит в OOM и падает без внятной
+# ошибки («signal: killed»). Значение переопределяется build-аргументом.
+ARG NODE_HEAP_MB=3072
+ENV NODE_OPTIONS=--max-old-space-size=$NODE_HEAP_MB
 
 # next build требует переменные окружения только для типов, не для подключения:
 # реальный DATABASE_URL приходит в рантайме
