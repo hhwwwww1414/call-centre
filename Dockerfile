@@ -26,6 +26,8 @@ COPY . .
 ARG BUILD_VERSION=dev
 ENV BUILD_VERSION=$BUILD_VERSION
 ENV NEXT_TELEMETRY_DISABLED=1
+# Потолок кучи: на VPS с 4 ГБ сборка иначе уходит в OOM и падает без внятной ошибки
+ENV NODE_OPTIONS=--max-old-space-size=2048
 
 # next build требует переменные окружения только для типов, не для подключения:
 # реальный DATABASE_URL приходит в рантайме
@@ -36,9 +38,11 @@ RUN pnpm exec prisma generate && pnpm exec next build
 # ─── migrator ───────────────────────────────────────────────────────────────
 # Отдельная стадия под `prisma migrate deploy`: CLI и движки миграций весят
 # сотни мегабайт, в рантайме они не нужны. Запускается разово из deploy.sh.
-FROM builder AS migrator
+#
+# Наследуемся от deps, а не от builder: миграциям не нужна сборка Next.
+# Иначе на слабом сервере два `next build` идут параллельно и падают по памяти.
+FROM deps AS migrator
 WORKDIR /app
-ENV DATABASE_URL=""
 CMD ["pnpm", "exec", "prisma", "migrate", "deploy"]
 
 # ─── runner ─────────────────────────────────────────────────────────────────
