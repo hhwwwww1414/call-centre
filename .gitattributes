@@ -1,0 +1,22 @@
+# Нормализуем переводы строк в репозитории.
+* text=auto eol=lf
+
+# Скрипты и конфиги едут на Linux: CRLF в shebang ломает запуск
+# («bad interpreter: /usr/bin/env bash^M»)
+*.sh            text eol=lf
+Dockerfile      text eol=lf
+*.conf          text eol=lf
+*.yml           text eol=lf
+*.yaml          text eol=lf
+.husky/*        text eol=lf
+
+# Бинарники не трогаем
+*.png           binary
+*.jpg           binary
+*.ico           binary
+*.wav           binary
+*.mp3           binary
+*.woff          binary
+*.woff2         binary
+
+pnpm-lock.yaml  -diff linguist-generated

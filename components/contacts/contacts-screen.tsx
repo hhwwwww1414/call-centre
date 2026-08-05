@@ -1,0 +1,225 @@
+'use client';
+
+import { Ban, Users } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import * as React from 'react';
+
+import { DirectionIcon } from '@/components/calls/call-presentation';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/field';
+import { EmptyState, Switch, TableSkeleton } from '@/components/ui/misc';
+import { useContacts, useDebounced } from '@/lib/client/hooks';
+import type { ContactRow } from '@/lib/client/types';
+import { ru } from '@/lib/i18n/ru';
+import { formatPhone } from '@/lib/phone';
+import { formatInZone } from '@/lib/time';
+import { pluralWithCount } from '@/lib/utils';
+
+export function ContactsScreen({ timezone }: { timezone: string }) {
+  const router = useRouter();
+  const [search, setSearch] = React.useState('');
+  const [onlyBlocked, setOnlyBlocked] = React.useState(false);
+  const debounced = useDebounced(search);
+
+  const params = React.useMemo(
+    () => ({ search: debounced.trim() || undefined, onlyBlocked: onlyBlocked || undefined, limit: 50 }),
+    [debounced, onlyBlocked],
+  );
+
+  const { data, isLoading, isError, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } =
+    useContacts(params);
+
+  const contacts = data?.pages.flatMap((page) => page.items) ?? [];
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-center gap-3">
+        <Input
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder={ru.contacts.searchPlaceholder}
+          aria-label={ru.common.search}
+          inputMode="search"
+          className="max-w-xs flex-1"
+        />
+        <label className="flex min-h-11 items-center gap-2 text-xs text-[var(--text-secondary)] md:min-h-0">
+          <Switch checked={onlyBlocked} onCheckedChange={setOnlyBlocked} aria-label={ru.contacts.blocked} />
+          {ru.contacts.blocked}
+        </label>
+      </div>
+
+      <Card className="overflow-hidden max-md:border-0 max-md:bg-transparent max-md:shadow-none">
+        {isLoading ? (
+          <TableSkeleton rows={8} columns={5} />
+        ) : isError ? (
+          <EmptyState
+            title={ru.errors.loadFailed}
+            hint={ru.errors.genericHint}
+            action={
+              <Button variant="secondary" size="sm" onClick={() => void refetch()}>
+                {ru.common.retry}
+              </Button>
+            }
+          />
+        ) : contacts.length === 0 ? (
+          <EmptyState
+            icon={<Users className="size-5" aria-hidden />}
+            title={ru.contacts.empty}
+            hint={ru.contacts.emptyHint}
+          />
+        ) : (
+          <>
+            <div className="hidden overflow-x-auto md:block">
+              <table className="w-full border-collapse text-xs">
+                <thead>
+                  <tr className="border-b border-[var(--border)] text-left text-2xs uppercase tracking-wide text-[var(--text-muted)]">
+                    <th scope="col" className="px-3 py-2.5 font-medium">
+                      {ru.contacts.columnName}
+                    </th>
+                    <th scope="col" className="px-3 py-2.5 font-medium">
+                      {ru.contacts.columnPhone}
+                    </th>
+                    <th scope="col" className="hidden px-3 py-2.5 font-medium lg:table-cell">
+                      {ru.contacts.columnCompany}
+                    </th>
+                    <th scope="col" className="hidden px-3 py-2.5 font-medium xl:table-cell">
+                      {ru.contacts.columnNote}
+                    </th>
+                    <th scope="col" className="px-3 py-2.5 text-right font-medium">
+                      {ru.contacts.columnCalls}
+                    </th>
+                    <th scope="col" className="px-3 py-2.5 font-medium">
+                      {ru.contacts.columnLastCall}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {contacts.map((contact) => (
+                    <tr
+                      key={contact.id}
+                      tabIndex={0}
+                      role="button"
+                      onClick={() => router.push(`/contacts/${contact.id}`)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter') router.push(`/contacts/${contact.id}`);
+                      }}
+                      className="cursor-pointer border-b border-[var(--border)] transition-colors hover:bg-[var(--surface)]"
+                    >
+                      <td className="max-w-52 px-3 py-2.5">
+                        <div className="flex items-center gap-1.5">
+                          <span className="truncate font-medium text-[var(--foreground)]">
+                            {contact.name ?? '—'}
+                          </span>
+                          {contact.isBlocked ? (
+                            <Badge tone="danger">
+                              <Ban className="size-3" aria-hidden />
+                              {ru.contacts.blocked}
+                            </Badge>
+                          ) : null}
+                        </div>
+                      </td>
+                      <td className="numeric whitespace-nowrap px-3 py-2.5 text-[var(--text-secondary)]">
+                        {formatPhone(contact.phoneE164)}
+                      </td>
+                      <td className="hidden max-w-40 truncate px-3 py-2.5 text-[var(--text-secondary)] lg:table-cell">
+                        {contact.company ?? '—'}
+                      </td>
+                      <td className="hidden max-w-64 truncate px-3 py-2.5 text-[var(--text-muted)] xl:table-cell">
+                        {contact.note ?? '—'}
+                      </td>
+                      <td className="numeric px-3 py-2.5 text-right text-[var(--foreground)]">
+                        {contact.callsCount}
+                      </td>
+                      <td className="numeric whitespace-nowrap px-3 py-2.5 text-[var(--text-muted)]">
+                        {contact.lastCall
+                          ? formatInZone(contact.lastCall.startedAt, timezone, 'datetime')
+                          : '—'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <ul className="flex flex-col gap-2 md:hidden">
+              {contacts.map((contact) => (
+                <ContactCard
+                  key={contact.id}
+                  contact={contact}
+                  timezone={timezone}
+                  onOpen={() => router.push(`/contacts/${contact.id}`)}
+                />
+              ))}
+            </ul>
+
+            {hasNextPage ? (
+              <div className="flex justify-center px-3 py-3">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  loading={isFetchingNextPage}
+                  onClick={() => void fetchNextPage()}
+                >
+                  {ru.calls.loadMore}
+                </Button>
+              </div>
+            ) : null}
+          </>
+        )}
+      </Card>
+    </div>
+  );
+}
+
+function ContactCard({
+  contact,
+  timezone,
+  onOpen,
+}: {
+  contact: ContactRow;
+  timezone: string;
+  onOpen: () => void;
+}) {
+  return (
+    <li className="surface-card">
+      <button type="button" onClick={onOpen} className="flex w-full flex-col gap-1.5 p-3 text-left">
+        <div className="flex items-start justify-between gap-2">
+          <span className="min-w-0">
+            <span className="block truncate text-sm font-medium text-[var(--foreground)]">
+              {contact.name ?? formatPhone(contact.phoneE164)}
+            </span>
+            {contact.name ? (
+              <span className="numeric block truncate text-2xs text-[var(--text-muted)]">
+                {formatPhone(contact.phoneE164)}
+              </span>
+            ) : null}
+          </span>
+          {contact.isBlocked ? (
+            <Badge tone="danger">
+              <Ban className="size-3" aria-hidden />
+            </Badge>
+          ) : null}
+        </div>
+
+        <div className="flex items-center gap-2 text-2xs text-[var(--text-muted)]">
+          {contact.lastCall ? (
+            <>
+              <DirectionIcon
+                direction={contact.lastCall.direction}
+                status={contact.lastCall.status}
+                className="size-3"
+              />
+              <span className="numeric">
+                {formatInZone(contact.lastCall.startedAt, timezone, 'short')}
+              </span>
+              <span>·</span>
+            </>
+          ) : null}
+          <span>{pluralWithCount(contact.callsCount, 'звонок', 'звонка', 'звонков')}</span>
+        </div>
+      </button>
+    </li>
+  );
+}

@@ -1,0 +1,34 @@
+# PostgreSQL живёт на отдельном хосте (ТЗ 8.1) — контейнера с БД здесь нет.
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        BUILD_VERSION: ${BUILD_VERSION:-dev}
+    image: vin2win-crm:${BUILD_VERSION:-latest}
+    container_name: vin2win-crm
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+      TZ: ${TZ:-Europe/Moscow}
+    # Наружу не выставляем: снаружи только nginx на хосте
+    ports:
+      - '127.0.0.1:3000:3000'
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:3000/api/health']
+      interval: 30s
+      timeout: 5s
+      start_period: 25s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '5'
+    security_opt:
+      - no-new-privileges:true

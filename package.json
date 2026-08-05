@@ -1,0 +1,109 @@
+{
+  "name": "vin2win-crm",
+  "version": "1.0.0",
+  "private": true,
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "prisma generate && next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "prisma:generate": "prisma generate",
+    "db:migrate": "prisma migrate deploy",
+    "db:migrate:dev": "prisma migrate dev",
+    "db:studio": "prisma studio",
+    "db:seed": "tsx prisma/seed.ts",
+    "seed:calls": "tsx prisma/seed-calls.ts",
+    "prepare": "husky || true"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@prisma/client",
+      "@prisma/engines",
+      "prisma",
+      "esbuild",
+      "sharp",
+      "unrs-resolver"
+    ]
+  },
+  "dependencies": {
+    "@auth/core": "0.41.3",
+    "@hookform/resolvers": "3.10.0",
+    "@node-rs/argon2": "2.0.2",
+    "@prisma/client": "6.19.3",
+    "@radix-ui/react-avatar": "^1.1.10",
+    "@radix-ui/react-checkbox": "^1.3.2",
+    "@radix-ui/react-dialog": "^1.1.14",
+    "@radix-ui/react-dropdown-menu": "^2.1.15",
+    "@radix-ui/react-label": "^2.1.7",
+    "@radix-ui/react-popover": "^1.1.14",
+    "@radix-ui/react-scroll-area": "^1.2.9",
+    "@radix-ui/react-select": "^2.2.5",
+    "@radix-ui/react-separator": "^1.1.7",
+    "@radix-ui/react-slot": "^1.2.3",
+    "@radix-ui/react-switch": "^1.2.5",
+    "@radix-ui/react-tabs": "^1.1.12",
+    "@radix-ui/react-tooltip": "^1.2.7",
+    "@tanstack/react-query": "^5.101.4",
+    "@tanstack/react-table": "8.21.3",
+    "class-variance-authority": "0.7.1",
+    "clsx": "2.1.1",
+    "date-fns": "^4.4.0",
+    "exceljs": "^4.4.0",
+    "libphonenumber-js": "^1.13.10",
+    "lucide-react": "^0.545.0",
+    "next": "15.5.22",
+    "next-auth": "5.0.0-beta.32",
+    "pg": "8.22.0",
+    "pino": "^10.3.1",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "react-hook-form": "^7.64.0",
+    "recharts": "2.15.4",
+    "sonner": "^2.0.7",
+    "tailwind-merge": "^3.6.0",
+    "zod": "3.25.76"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.3.6",
+    "@playwright/test": "^1.62.1",
+    "@tailwindcss/postcss": "4.3.3",
+    "@testing-library/react": "^16.3.0",
+    "@types/node": "^22.15.0",
+    "@types/pg": "8.20.4",
+    "@types/react": "19.2.0",
+    "@types/react-dom": "19.2.0",
+    "@vitejs/plugin-react": "^4.7.0",
+    "eslint": "9.39.5",
+    "eslint-config-next": "15.5.22",
+    "eslint-config-prettier": "^10.1.8",
+    "husky": "^9.1.7",
+    "jsdom": "^26.1.0",
+    "lint-staged": "^16.2.6",
+    "pino-pretty": "^13.1.2",
+    "prettier": "^3.9.6",
+    "prettier-plugin-tailwindcss": "^0.6.14",
+    "prisma": "6.19.3",
+    "tailwindcss": "4.3.3",
+    "tsx": "^4.20.6",
+    "typescript": "5.9.3",
+    "vitest": "3.2.7"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,css}": [
+      "prettier --write"
+    ]
+  }
+}

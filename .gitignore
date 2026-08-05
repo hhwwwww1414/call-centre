@@ -1,0 +1,51 @@
+# dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# next
+/.next/
+/out/
+next-env.d.ts
+
+# production
+/build
+/dist
+
+# secrets — никогда не коммитим
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+*.p12
+secrets/
+
+# testing
+/coverage
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
+# logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+logs/
+
+# backups / dumps
+*.sql.gz
+backups/
+
+# misc
+.DS_Store
+Thumbs.db
+*.tsbuildinfo
+.vercel
+.idea/
+.vscode/*
+!.vscode/extensions.json

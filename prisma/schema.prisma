@@ -1,0 +1,189 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  SUPERVISOR
+  MANAGER
+}
+
+enum CallDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum CallStatus {
+  RINGING // идёт дозвон
+  IN_PROGRESS // разговор
+  COMPLETED // завершён с разговором
+  MISSED // входящий без ответа
+  NO_ANSWER // исходящий без ответа
+  BUSY
+  FAILED
+  CANCELED
+}
+
+enum CallOutcome {
+  NEW
+  INTERESTED
+  CALLBACK
+  REFUSED
+  WRONG_NUMBER
+  DEAL
+  SPAM
+}
+
+model User {
+  id                 String    @id @default(cuid())
+  email              String    @unique
+  name               String
+  phone              String?
+  extension          String?   @unique // внутренний номер в АТС
+  passwordHash       String?
+  role               Role      @default(MANAGER)
+  isActive           Boolean   @default(true)
+  mustChangePassword Boolean   @default(false)
+  theme              String    @default("system")
+  timezone           String    @default("Europe/Moscow")
+  soundNotifications Boolean   @default(false)
+  lastLoginAt        DateTime?
+  createdById        String?
+  createdBy          User?     @relation("UserCreator", fields: [createdById], references: [id])
+  createdUsers       User[]    @relation("UserCreator")
+  deletedAt          DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  calls     Call[]
+  invites   Invite[]
+  auditLogs AuditLog[]
+
+  @@index([role, isActive])
+  @@index([deletedAt])
+}
+
+model Invite {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
+model Contact {
+  id        String   @id @default(cuid())
+  phoneE164 String   @unique // единый формат +7XXXXXXXXXX
+  name      String?
+  company   String?
+  note      String?
+  isBlocked Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  calls Call[]
+
+  @@index([name])
+}
+
+model Call {
+  id         String        @id @default(cuid())
+  externalId String?       @unique // id звонка у провайдера, ключ идемпотентности
+  provider   String        @default("mock")
+  direction  CallDirection
+  status     CallStatus
+  outcome    CallOutcome   @default(NEW)
+
+  fromNumber String
+  toNumber   String
+  contactId  String?
+  contact    Contact? @relation(fields: [contactId], references: [id])
+
+  userId String? // менеджер
+  user   User?   @relation(fields: [userId], references: [id])
+
+  startedAt       DateTime
+  answeredAt      DateTime?
+  endedAt         DateTime?
+  waitSeconds     Int? // до ответа
+  durationSeconds Int       @default(0) // длительность разговора
+  billSeconds     Int?
+
+  recordingUrl   String?
+  recordingReady Boolean @default(false)
+
+  transcript CallTranscript?
+
+  comment String?
+  tags    String[] @default([])
+
+  rawPayload Json? // сырой ответ провайдера, для отладки
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([userId, startedAt])
+  @@index([status, startedAt])
+  @@index([startedAt])
+  @@index([direction, startedAt])
+  @@index([outcome, startedAt])
+  @@index([contactId, startedAt])
+}
+
+model CallTranscript {
+  id        String   @id @default(cuid())
+  callId    String   @unique
+  call      Call     @relation(fields: [callId], references: [id], onDelete: Cascade)
+  status    String   @default("PENDING") // PENDING | PROCESSING | READY | FAILED
+  language  String   @default("ru")
+  fullText  String?
+  segments  Json? // [{ speaker, startMs, endMs, text }]
+  summary   String?
+  provider  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  actor      User?    @relation(fields: [actorId], references: [id])
+  action     String // user.create, user.deactivate, call.outcome.update, settings.update
+  entityType String
+  entityId   String?
+  meta       Json?
+  ip         String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  @@index([actorId, createdAt])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@index([action, createdAt])
+}
+
+model Setting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+}
+
+/// Попытки входа — для rate limit 5/15 минут по связке IP + логин (ТЗ 3.4).
+model LoginAttempt {
+  id        String   @id @default(cuid())
+  ip        String
+  email     String
+  success   Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([ip, email, createdAt])
+  @@index([createdAt])
+}

@@ -1,0 +1,357 @@
+@import 'tailwindcss';
+
+/*
+ * Тема переключается классом на <body> (theme-light / theme-dark), который
+ * ставит инлайновый скрипт в <head> до гидратации — поэтому вспышки нет.
+ */
+@custom-variant dark (&:where(body.theme-dark, body.theme-dark *));
+
+/* ─────────────────────────────────────────────────────────────────────────
+   1. Токены палитры VIN2WIN
+   Никаких hex-значений в компонентах: только переменные отсюда.
+   ───────────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* Бренд — зелёный означает «принято / успешно / целевое действие» */
+  --primary: #16a34a;
+  --ring: #16a34a;
+  --success: #16a34a;
+  --price-margin: #16a34a;
+  --brand: #15803d; /* кнопки: AA с белым текстом */
+  --brand-text: #22c55e; /* зелёный текст на тёмном */
+  --brand-foreground: #ffffff;
+  --primary-foreground: #ffffff;
+  --brand-soft: rgb(21 128 61 / 0.12);
+  --accent: rgb(22 163 74 / 0.1);
+  --accent-foreground: #15803d;
+  --success-soft: #e7f7ee;
+  --price-margin-soft: rgb(22 163 74 / 0.12);
+
+  /* Вторичный акцент — «требует внимания». Редкий по замыслу. */
+  --price-margin-badge-bg: #ffd800;
+  --price-margin-badge-text: #2f2100;
+
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --destructive-soft: rgb(239 68 68 / 0.12);
+
+  /* Нейтрали — light */
+  --page: #ffffff;
+  --foreground: #0f1115;
+  --text-primary: #0f1115;
+  --text-secondary: #374151;
+  --text-muted: #5f6874;
+  --muted-foreground: #6b7280;
+  --card: #ffffff;
+  --card-foreground: #0f1115;
+  --popover: #ffffff;
+  --popover-foreground: #0f1115;
+  --secondary: rgb(243 244 246 / 0.9);
+  --secondary-foreground: #0f1115;
+  --surface: rgb(243 244 246 / 0.86);
+  --surface-2: rgb(247 248 250 / 0.82);
+  --muted: rgb(247 248 250 / 0.86);
+  --border: rgb(15 17 21 / 0.12);
+  --border-strong: #e5e7eb;
+  --input: rgb(15 17 21 / 0.12);
+  --price-market: #68707c;
+  --price-hand: #111827;
+
+  /* Seller card — тёмный блок в обеих темах */
+  --seller-card: #121417;
+  --seller-card-border: #24282d;
+  --seller-card-inner: #1c2024;
+  --seller-card-text: #f4f6f8;
+  --seller-card-muted: #9aa3ad;
+
+  /* Семантика статусов звонка (ТЗ 2.2) */
+  --status-completed: var(--success);
+  --status-completed-soft: var(--success-soft);
+  --status-missed: var(--destructive);
+  --status-missed-soft: var(--destructive-soft);
+  --status-active: var(--price-margin-badge-bg);
+  --status-active-text: var(--price-margin-badge-text);
+  --status-neutral: var(--text-muted);
+  --status-neutral-soft: var(--surface-2);
+
+  /* Диаграммы */
+  --chart-1: #16a34a;
+  --chart-2: #0ea5e9;
+  --chart-3: #ffd800;
+  --chart-4: #ef4444;
+  --chart-5: #8b5cf6;
+  --chart-6: #f97316;
+  --chart-7: #64748b;
+
+  --radius: 0.625rem;
+  --shadow-soft: 0 1px 2px rgb(15 17 21 / 0.05), 0 1px 3px rgb(15 17 21 / 0.06);
+  --shadow-raised: 0 4px 6px -1px rgb(15 17 21 / 0.07), 0 2px 4px -2px rgb(15 17 21 / 0.05);
+  --shadow-overlay: 0 20px 25px -5px rgb(15 17 21 / 0.12), 0 8px 10px -6px rgb(15 17 21 / 0.08);
+
+  color-scheme: light;
+}
+
+body.theme-light {
+  color-scheme: light;
+}
+
+body.theme-dark {
+  --page: #0a0a0a;
+  --foreground: #f4f7f7;
+  --text-primary: #f4f7f7;
+  --text-secondary: #d7dddd;
+  --text-muted: #a6b4b4;
+  --muted-foreground: #a6b4b4;
+  --card: #0f1214;
+  --card-foreground: #f4f7f7;
+  --popover: #0f1214;
+  --popover-foreground: #f4f7f7;
+  --secondary: #181c1f;
+  --secondary-foreground: #f4f7f7;
+  --surface: #181c1f;
+  --surface-2: #111416;
+  --muted: #111416;
+  --border: rgb(255 255 255 / 0.11);
+  --border-strong: rgb(255 255 255 / 0.18);
+  --input: rgb(255 255 255 / 0.14);
+  --price-market: #8d979b;
+  --price-hand: #f8fafc;
+
+  --accent: rgb(22 163 74 / 0.16);
+  --accent-foreground: #22c55e;
+  --success-soft: rgb(22 163 74 / 0.16);
+  --destructive-soft: rgb(239 68 68 / 0.18);
+  --price-margin-badge-text: #1f1600;
+
+  --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-raised: 0 4px 6px -1px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.4);
+  --shadow-overlay: 0 20px 25px -5px rgb(0 0 0 / 0.6), 0 8px 10px -6px rgb(0 0 0 / 0.5);
+
+  color-scheme: dark;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   2. Мост токен → утилита Tailwind
+   ───────────────────────────────────────────────────────────────────────── */
+
+@theme inline {
+  --color-background: var(--page);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-brand-text: var(--brand-text);
+  --color-brand-soft: var(--brand-soft);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-destructive-soft: var(--destructive-soft);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--price-margin-badge-bg);
+  --color-warning-foreground: var(--price-margin-badge-text);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-seller-card: var(--seller-card);
+  --color-seller-card-border: var(--seller-card-border);
+  --color-seller-card-inner: var(--seller-card-inner);
+  --color-seller-card-text: var(--seller-card-text);
+  --color-seller-card-muted: var(--seller-card-muted);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-chart-6: var(--chart-6);
+  --color-chart-7: var(--chart-7);
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-unbounded), var(--font-inter), ui-sans-serif, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
+
+  /* Шкала 12 / 13 / 14 / 16 / 20 / 28 / 40 (ТЗ 2.3) */
+  --text-2xs: 0.75rem;
+  --text-2xs--line-height: 1rem;
+  --text-xs: 0.8125rem;
+  --text-xs--line-height: 1.125rem;
+  --text-sm: 0.875rem;
+  --text-sm--line-height: 1.25rem;
+  --text-base: 1rem;
+  --text-base--line-height: 1.5rem;
+  --text-lg: 1.25rem;
+  --text-lg--line-height: 1.75rem;
+  --text-xl: 1.75rem;
+  --text-xl--line-height: 2.125rem;
+  --text-2xl: 2.5rem;
+  --text-2xl--line-height: 2.75rem;
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --shadow-soft: var(--shadow-soft);
+  --shadow-raised: var(--shadow-raised);
+  --shadow-overlay: var(--shadow-overlay);
+
+  --breakpoint-sm: 40rem;
+  --breakpoint-md: 48rem;
+  --breakpoint-lg: 64rem;
+  --breakpoint-xl: 80rem;
+
+  --animate-row-flash: row-flash 2s ease-out 1;
+  --animate-pulse-dot: pulse-dot 2s ease-in-out infinite;
+}
+
+@keyframes row-flash {
+  0% {
+    background-color: var(--brand-soft);
+  }
+  70% {
+    background-color: var(--brand-soft);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+@keyframes pulse-dot {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   3. База
+   ───────────────────────────────────────────────────────────────────────── */
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--page);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    font-size: 0.875rem; /* базовый размер интерфейса — 14px */
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Видимый фокус клавиатуры на всех интерактивных элементах (ТЗ 2.6) */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+
+  ::selection {
+    background-color: var(--brand-soft);
+  }
+
+  /* Скроллбар в тон теме */
+  * {
+    scrollbar-color: var(--border-strong) transparent;
+    scrollbar-width: thin;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--border-strong);
+    border: 3px solid transparent;
+    border-radius: 9999px;
+    background-clip: content-box;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   4. Утилиты проекта
+   ───────────────────────────────────────────────────────────────────────── */
+
+@utility tabular {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+/* Длительности, номера телефонов и деньги — только моноширинные цифры */
+@utility numeric {
+  font-variant-numeric: tabular-nums slashed-zero;
+  font-feature-settings:
+    'tnum' 1,
+    'zero' 1;
+}
+
+@utility display-heading {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+@utility surface-card {
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-soft);
+}
+
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Безопасная зона под нижнюю навигацию на iOS */
+@utility pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   5. prefers-reduced-motion — уважается (ТЗ 2.6)
+   ───────────────────────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

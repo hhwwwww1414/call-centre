@@ -1,0 +1,181 @@
+import type { CallDirection, CallOutcome, CallStatus, Role } from '@prisma/client';
+
+/** Формы данных, которые API отдаёт клиенту. Даты приходят строками ISO. */
+
+export type CallContact = {
+  id: string;
+  phoneE164: string;
+  name: string | null;
+  company: string | null;
+  isBlocked: boolean;
+};
+
+export type CallUser = { id: string; name: string; extension: string | null };
+
+export type CallItem = {
+  id: string;
+  externalId: string | null;
+  provider: string;
+  direction: CallDirection;
+  status: CallStatus;
+  outcome: CallOutcome;
+  fromNumber: string;
+  toNumber: string;
+  startedAt: string;
+  answeredAt: string | null;
+  endedAt: string | null;
+  waitSeconds: number | null;
+  durationSeconds: number;
+  recordingUrl: string | null;
+  recordingReady: boolean;
+  comment: string | null;
+  tags: string[];
+  contact: CallContact | null;
+  user: CallUser | null;
+};
+
+export type CallListResponse = {
+  items: CallItem[];
+  nextCursor: string | null;
+  total: number;
+};
+
+export type CallHistoryItem = {
+  id: string;
+  direction: CallDirection;
+  status: CallStatus;
+  outcome: CallOutcome;
+  startedAt: string;
+  durationSeconds: number;
+  user: { id: string; name: string } | null;
+};
+
+export type CallDetailsResponse = {
+  call: CallItem & {
+    createdAt: string;
+    updatedAt: string;
+    transcript: {
+      status: string;
+      language: string;
+      fullText: string | null;
+      segments: unknown;
+      summary: string | null;
+    } | null;
+  };
+  history: CallHistoryItem[];
+};
+
+export type Kpi = {
+  total: number;
+  answered: number;
+  missed: number;
+  avgDurationSeconds: number;
+  avgWaitSeconds: number;
+  talkTimeSeconds: number;
+  missedShare: number;
+};
+
+export type SeriesPoint = { bucket: string; inbound: number; outbound: number };
+
+export type ManagerRow = {
+  userId: string | null;
+  name: string | null;
+  extension: string | null;
+  isActive: boolean;
+  total: number;
+  answered: number;
+  missed: number;
+  missedShare: number;
+  avgDurationSeconds: number;
+  avgWaitSeconds: number;
+  talkTimeSeconds: number;
+};
+
+export type StatsResponse = {
+  period: { preset: string; from: string; to: string; granularity: 'hour' | 'day' };
+  kpi: Kpi;
+  series: SeriesPoint[];
+  outcomes: { outcome: CallOutcome; count: number }[];
+  recent: CallItem[];
+  callbackQueue: CallItem[];
+  managers: ManagerRow[];
+};
+
+export type AnalyticsResponse = {
+  period: { preset: string; from: string; to: string };
+  managers: ManagerRow[];
+  outcomes: { outcome: CallOutcome; count: number }[];
+  hours: { hour: number; total: number; missed: number; missedShare: number }[];
+  weekdays: { weekday: number; total: number }[];
+};
+
+export type ContactRow = {
+  id: string;
+  phoneE164: string;
+  name: string | null;
+  company: string | null;
+  note: string | null;
+  isBlocked: boolean;
+  callsCount: number;
+  lastCall: { startedAt: string; direction: CallDirection; status: CallStatus } | null;
+};
+
+export type ContactListResponse = { items: ContactRow[]; nextCursor: string | null };
+
+export type ContactDetailsResponse = {
+  contact: {
+    id: string;
+    phoneE164: string;
+    name: string | null;
+    company: string | null;
+    note: string | null;
+    isBlocked: boolean;
+  };
+  calls: CallItem[];
+};
+
+export type UserRow = {
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  extension: string | null;
+  role: Role;
+  isActive: boolean;
+  mustChangePassword: boolean;
+  timezone: string;
+  lastLoginAt: string | null;
+  createdAt: string;
+  calls30d: number;
+};
+
+export type AccessResult =
+  | { method: 'invite'; inviteUrl: string; expiresAt: string }
+  | { method: 'password'; oneTimePassword: string };
+
+export type AuditRow = {
+  id: string;
+  action: string;
+  entityType: string;
+  entityId: string | null;
+  meta: Record<string, unknown> | null;
+  ip: string | null;
+  createdAt: string;
+  actor: { id: string; name: string; email: string } | null;
+};
+
+export type AuditResponse = {
+  items: AuditRow[];
+  nextCursor: string | null;
+  actions: string[];
+  actors: { id: string; name: string }[];
+};
+
+export type TelephonyStatusResponse = {
+  provider: 'mock' | 'exolve';
+  configured: boolean;
+  webhookUrl: string;
+  credentials: Record<string, boolean>;
+  lastCall: { startedAt: string; provider: string; status: CallStatus } | null;
+  callsLast24h: number;
+};
