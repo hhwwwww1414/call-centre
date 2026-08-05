@@ -16,14 +16,34 @@ test.describe('Вход и доступ', () => {
   });
 
   test('неверный пароль не выдаёт, существует ли пользователь', async ({ page }) => {
+    // Адрес уникален для каждого прогона: с постоянным тест сам себя
+    // заблокировал бы — 5 неудачных попыток за 15 минут, и вместо
+    // «неверный пароль» приходит сообщение о превышении лимита
+    const email = `never-existed-${Date.now()}@vin2win.online`;
+
     await page.goto('/login');
-    await page.locator('#login-email').fill('never-existed@vin2win.online');
+    await page.locator('#login-email').fill(email);
     await page.locator('#login-password').fill('заведомо-неверный-пароль');
     await page.locator('button[type=submit]').click();
 
     // На странице живёт ещё и служебный announcer с role=alert,
     // поэтому целимся в конкретный текст, а не в роль вообще
     await expect(page.getByText('Неверный e-mail или пароль')).toBeVisible();
+  });
+
+  test('перебор паролей упирается в лимит попыток', async ({ page }) => {
+    const email = `bruteforce-${Date.now()}@vin2win.online`;
+
+    await page.goto('/login');
+    for (let attempt = 1; attempt <= 6; attempt += 1) {
+      await page.locator('#login-email').fill(email);
+      await page.locator('#login-password').fill(`подбор-${attempt}`);
+      await page.locator('button[type=submit]').click();
+      await expect(page.getByRole('alert').first()).toBeVisible();
+    }
+
+    // Шестая попытка должна упереться в лимит 5 за 15 минут (ТЗ 3.4)
+    await expect(page.getByText('Слишком много попыток входа')).toBeVisible();
   });
 
   test('API без сессии отвечает 401, а не пустыми данными', async ({ request }) => {
