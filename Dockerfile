@@ -77,6 +77,11 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 
+# ARG не переходит между стадиями — объявляем заново, иначе /api/health
+# рапортует "dev" и по нему нельзя понять, какая сборка сейчас живая
+ARG BUILD_VERSION=dev
+ENV BUILD_VERSION=$BUILD_VERSION
+
 COPY --from=builder /app/public ./public
 
 # output: 'standalone' — Next сам трассирует зависимости и кладёт в образ
