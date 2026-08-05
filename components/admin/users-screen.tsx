@@ -324,7 +324,7 @@ function CreateUserDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{ru.users.create}</DialogTitle>
-          <DialogDescription>{ru.auth.noPublicSignup}</DialogDescription>
+          <DialogDescription>{ru.users.createHint}</DialogDescription>
         </DialogHeader>
 
         <form

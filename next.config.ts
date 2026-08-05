@@ -34,6 +34,11 @@ const nextConfig: NextConfig = {
     // forbidden()/unauthorized() из next/navigation — рендерят app/forbidden.tsx
     authInterrupts: true,
   },
+  images: {
+    // В интерфейсе одна картинка — логотип, и он уже подготовлен под нужный
+    // размер. Оптимизатор ради него тянул бы в контейнер нативный sharp.
+    unoptimized: true,
+  },
   env: {
     NEXT_PUBLIC_BUILD_VERSION: process.env.BUILD_VERSION ?? 'dev',
   },

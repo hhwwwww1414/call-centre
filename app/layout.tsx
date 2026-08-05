@@ -30,7 +30,8 @@ export const metadata: Metadata = {
   },
   description: 'Внутренняя CRM колл-центра VIN2WIN',
   robots: { index: false, follow: false },
-  icons: { icon: '/favicon.svg' },
+  // Иконки берутся из app/icon.png и app/apple-icon.png — Next подхватывает
+  // их по соглашению и сам проставляет размеры
 };
 
 export const viewport: Viewport = {

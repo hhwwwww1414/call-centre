@@ -93,8 +93,6 @@ export function LoginForm() {
       <Button type="submit" variant="primary" size="lg" loading={pending} className="mt-1 w-full">
         {pending ? ru.auth.signingIn : ru.auth.signIn}
       </Button>
-
-      <p className="text-center text-2xs text-[var(--text-muted)]">{ru.auth.noPublicSignup}</p>
     </form>
   );
 }

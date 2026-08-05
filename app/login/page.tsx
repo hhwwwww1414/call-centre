@@ -4,6 +4,7 @@ import { Suspense } from 'react';
 
 import { auth } from '@/auth';
 import { LoginForm } from '@/components/auth/login-form';
+import { Logo } from '@/components/brand/logo';
 import { Skeleton } from '@/components/ui/misc';
 import { ru } from '@/lib/i18n/ru';
 
@@ -17,16 +18,11 @@ export default async function LoginPage() {
   return (
     <main className="flex min-h-dvh items-center justify-center bg-[var(--page)] px-4 py-10">
       <div className="w-full max-w-sm">
-        <div className="mb-7 flex flex-col items-center gap-3 text-center">
-          <span className="flex size-12 items-center justify-center rounded-xl bg-[var(--brand)] text-base font-bold text-[var(--brand-foreground)]">
-            V2
-          </span>
-          <div>
-            <h1 className="display-heading text-lg text-[var(--foreground)]">
-              {ru.auth.signInTitle}
-            </h1>
-            <p className="mt-1 text-xs text-[var(--text-muted)]">{ru.auth.signInSubtitle}</p>
-          </div>
+        <div className="mb-7 flex flex-col items-center gap-4 text-center">
+          <Logo width={148} priority />
+          <h1 className="display-heading text-lg text-[var(--foreground)]">
+            {ru.auth.signInTitle}
+          </h1>
         </div>
 
         <div className="surface-card p-5">

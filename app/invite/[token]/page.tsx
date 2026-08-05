@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 import { InviteForm } from '@/components/auth/invite-form';
+import { Logo } from '@/components/brand/logo';
 import { Button } from '@/components/ui/button';
 import { hashToken } from '@/lib/crypto';
 import { prisma } from '@/lib/db';
@@ -32,10 +33,8 @@ export default async function InvitePage({ params }: { params: Promise<{ token: 
   return (
     <main className="flex min-h-dvh items-center justify-center bg-[var(--page)] px-4 py-10">
       <div className="w-full max-w-sm">
-        <div className="mb-7 flex flex-col items-center gap-3 text-center">
-          <span className="flex size-12 items-center justify-center rounded-xl bg-[var(--brand)] text-base font-bold text-[var(--brand-foreground)]">
-            V2
-          </span>
+        <div className="mb-7 flex flex-col items-center gap-4 text-center">
+          <Logo width={148} priority />
           <div>
             <h1 className="display-heading text-lg text-[var(--foreground)]">
               {valid ? ru.auth.inviteTitle : ru.auth.inviteInvalid}

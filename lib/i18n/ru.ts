@@ -68,7 +68,6 @@ export const ru = {
 
   auth: {
     signInTitle: 'Вход в CRM',
-    signInSubtitle: 'Рабочее место колл-центра VIN2WIN',
     email: 'E-mail',
     password: 'Пароль',
     signIn: 'Войти',
@@ -77,7 +76,6 @@ export const ru = {
     invalidCredentials: 'Неверный e-mail или пароль',
     accountDisabled: 'Доступ к аккаунту закрыт. Обратитесь к администратору',
     tooManyAttempts: 'Слишком много попыток входа. Попробуйте снова через 15 минут',
-    noPublicSignup: 'Аккаунты создаёт администратор. Публичной регистрации нет',
     mustChangePassword: 'Задайте новый пароль',
     mustChangePasswordHint: 'Стартовый пароль работает один раз — придумайте свой, чтобы продолжить',
     newPassword: 'Новый пароль',
@@ -242,6 +240,7 @@ export const ru = {
     title: 'Пользователи',
     subtitle: 'Аккаунты менеджеров и администраторов',
     create: 'Создать менеджера',
+    createHint: 'Сотрудник получит ссылку для входа и сам задаст себе пароль',
     columnName: 'Имя',
     columnEmail: 'E-mail',
     columnRole: 'Роль',

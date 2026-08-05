@@ -11,8 +11,24 @@ test.describe('Вход и доступ', () => {
 
   test('публичной регистрации нет', async ({ page }) => {
     await page.goto('/login');
-    await expect(page.getByText('Аккаунты создаёт администратор')).toBeVisible();
+
+    // На экране входа только логотип, заголовок и форма — ни ссылки на
+    // регистрацию, ни восстановления пароля быть не должно
     await expect(page.getByRole('link', { name: /регистр/i })).toHaveCount(0);
+    await expect(page.getByRole('link', { name: /забыл|восстанов/i })).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: 'Вход в CRM' })).toBeVisible();
+  });
+
+  test('на экране входа показан логотип VIN2WIN', async ({ page }) => {
+    await page.goto('/login');
+    const logo = page.getByRole('img', { name: 'VIN2WIN' });
+    await expect(logo).toBeVisible();
+
+    // Картинка должна реально загрузиться, а не остаться битой ссылкой
+    const loaded = await logo.evaluate(
+      (img: HTMLImageElement) => img.complete && img.naturalWidth > 0,
+    );
+    expect(loaded).toBe(true);
   });
 
   test('неверный пароль не выдаёт, существует ли пользователь', async ({ page }) => {

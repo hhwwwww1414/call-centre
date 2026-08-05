@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import * as React from 'react';
 
+import { Logo } from '@/components/brand/logo';
 import { UserMenu } from '@/components/layout/user-menu';
 import { Button } from '@/components/ui/button';
 import { ru } from '@/lib/i18n/ru';
@@ -50,13 +51,11 @@ export function Sidebar({
           className="flex min-w-0 items-center gap-2.5"
           aria-label={`${ru.app.name} — ${ru.app.subtitle}`}
         >
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[var(--brand)] text-sm font-bold text-[var(--brand-foreground)]">
-            V2
-          </span>
-          <span className={cn('min-w-0 flex-col', collapsed ? 'hidden' : 'hidden lg:flex')}>
-            <span className="display-heading truncate text-sm leading-tight text-[var(--foreground)]">
-              {ru.app.name}
-            </span>
+          {/* В свёрнутом сайдбаре знак ужимается по ширине колонки,
+              в развёрнутом — идёт в полный размер с подписью раздела */}
+          <Logo width={collapsed ? 40 : 40} className={cn('shrink-0', collapsed ? '' : 'lg:hidden')} />
+          <span className={cn('min-w-0 flex-col gap-0.5', collapsed ? 'hidden' : 'hidden lg:flex')}>
+            <Logo width={92} />
             <span className="truncate text-2xs text-[var(--text-muted)]">{ru.app.subtitle}</span>
           </span>
         </Link>
