@@ -25,15 +25,26 @@ docker run -d --name "$CONTAINER" \
   -e POSTGRES_DB=restore_check \
   postgres:18-alpine >/dev/null
 
+# pg_isready недостаточно: во время initdb поднимается временный сервер,
+# который отвечает «готов», а затем выключается. Ждём реального запроса.
 echo -n 'Ждём готовности временной БД'
-for _ in $(seq 1 30); do
-  if docker exec "$CONTAINER" pg_isready -U postgres -q 2>/dev/null; then
+READY=0
+for _ in $(seq 1 60); do
+  if docker exec "$CONTAINER" psql -U postgres -d restore_check -c 'SELECT 1' >/dev/null 2>&1; then
+    READY=1
     echo ' — готова'
     break
   fi
   echo -n '.'
   sleep 1
 done
+
+if [[ "$READY" -ne 1 ]]; then
+  echo ''
+  echo 'ОШИБКА: временная БД не поднялась' >&2
+  docker logs "$CONTAINER" 2>&1 | tail -20 >&2
+  exit 1
+fi
 
 echo 'Разворачиваем дамп'
 gunzip -c "$DUMP" | docker exec -i "$CONTAINER" \
