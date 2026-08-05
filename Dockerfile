@@ -55,6 +55,13 @@ RUN set -eux; \
 # Иначе на слабом сервере два `next build` идут параллельно и падают по памяти.
 FROM deps AS migrator
 WORKDIR /app
+
+# Тем же образом запускаются сид-скрипты и аварийная установка пароля,
+# а они тянут код из lib/ — без него tsx не найдёт модули
+COPY tsconfig.json ./
+COPY lib ./lib
+COPY scripts ./scripts
+
 CMD ["pnpm", "exec", "prisma", "migrate", "deploy"]
 
 # ─── runner ─────────────────────────────────────────────────────────────────
