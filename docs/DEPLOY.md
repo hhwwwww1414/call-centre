@@ -35,6 +35,38 @@ root и парольную аутентификацию, настраивает 
 chown -R deploy:deploy /opt/vin2win-crm
 ```
 
+### Подключение к серверу
+
+После харденинга вход только по ключу и только пользователем `deploy`:
+
+```bash
+ssh -i ~/.ssh/vin2win_deploy deploy@<ip>
+```
+
+> **Ubuntu 26.04 и старые SSH-клиенты.** Сервер использует OpenSSH 10
+> с постквантовым обменом ключами, которого нет в клиентах постарше
+> (в том числе во встроенном OpenSSH Windows). Симптом — `choose_kex:
+> unsupported KEX method`. Лечится явным указанием алгоритма:
+>
+> ```bash
+> ssh -o KexAlgorithms=curve25519-sha256 -i ~/.ssh/vin2win_deploy deploy@<ip>
+> ```
+>
+> Чтобы не писать это каждый раз, добавьте в `~/.ssh/config`:
+>
+> ```
+> Host vin2win
+>     HostName 201.34.133.133
+>     User deploy
+>     IdentityFile ~/.ssh/vin2win_deploy
+>     KexAlgorithms curve25519-sha256,curve25519-sha256@libssh.org
+> ```
+>
+> Дальше — просто `ssh vin2win`.
+>
+> PuTTY и plink читают только формат `.ppk`: ключ нужно один раз
+> сконвертировать в PuTTYgen (Conversions → Import key → Save private key).
+
 ---
 
 ## 2. Переменные окружения

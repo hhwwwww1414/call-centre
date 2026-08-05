@@ -87,7 +87,39 @@ log 'Закрываем вход root и парольную аутентифик
 # Проверяем, что ключ реально лёг — иначе запрет пароля отрежет доступ
 [[ -s "/home/$DEPLOY_USER/.ssh/authorized_keys" ]] || die 'authorized_keys пуст, отменяю харденинг SSH'
 
-cat > /etc/ssh/sshd_config.d/99-vin2win.conf <<EOF
+# Наличия файла мало: проверяем, что sshd реально пускает по ключу.
+# Одноразовую пару генерируем на месте — настоящий приватный ключ на
+# сервер класть незачем.
+AUTH_KEYS="/home/$DEPLOY_USER/.ssh/authorized_keys"
+TMPKEY="$(mktemp -u /tmp/sshcheck-XXXXXX)"
+ssh-keygen -q -t ed25519 -f "$TMPKEY" -N '' -C 'ssh-selfcheck'
+cat "$TMPKEY.pub" >> "$AUTH_KEYS"
+
+set +e
+ssh -i "$TMPKEY" -o BatchMode=yes -o StrictHostKeyChecking=no \
+    -o UserKnownHostsFile=/dev/null -o PasswordAuthentication=no \
+    -o ConnectTimeout=10 "$DEPLOY_USER@127.0.0.1" 'true' 2>/tmp/sshcheck.err
+PUBKEY_CHECK=$?
+set -e
+
+grep -v 'ssh-selfcheck' "$AUTH_KEYS" > "$AUTH_KEYS.tmp"
+mv "$AUTH_KEYS.tmp" "$AUTH_KEYS"
+chown "$DEPLOY_USER:$DEPLOY_USER" "$AUTH_KEYS"
+chmod 600 "$AUTH_KEYS"
+rm -f "$TMPKEY" "$TMPKEY.pub"
+
+if [[ "$PUBKEY_CHECK" -ne 0 ]]; then
+  cat /tmp/sshcheck.err >&2
+  die 'sshd не принял вход по ключу — харденинг отменён, иначе доступ был бы потерян'
+fi
+log 'Вход по ключу проверен'
+
+# Имя файла начинается с 01 не случайно: sshd применяет ПЕРВОЕ встреченное
+# значение параметра, а образы Ubuntu кладут /etc/ssh/sshd_config.d/
+# 50-cloud-init.conf с `PasswordAuthentication yes`. Файл с префиксом 99
+# читался бы после него и молча ничего не менял.
+rm -f /etc/ssh/sshd_config.d/99-vin2win.conf
+cat > /etc/ssh/sshd_config.d/01-vin2win.conf <<EOF
 PermitRootLogin no
 PasswordAuthentication no
 PubkeyAuthentication yes
@@ -103,6 +135,13 @@ EOF
 
 sshd -t || die 'Конфиг sshd не проходит проверку — ничего не перезапускаю'
 systemctl reload ssh || systemctl reload sshd
+
+# Сверяем, что настройки реально применились: тихо не сработавший запрет
+# пароля — худший исход, он оставляет сервер открытым, но выглядит как успех
+echo 'Действующие настройки sshd:'
+sshd -T | grep -E '^(permitrootlogin|passwordauthentication|pubkeyauthentication|allowusers)'
+sshd -T | grep -qx 'passwordauthentication no' \
+  || die 'Парольный вход всё ещё разрешён — проверьте другие файлы в /etc/ssh/sshd_config.d/'
 
 log 'Ротация логов приложения'
 cat > /etc/logrotate.d/vin2win-crm <<'EOF'
