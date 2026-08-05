@@ -4,10 +4,10 @@ import { ADMIN, requireCredentials, signIn } from './helpers';
 
 /** Критерий приёмки 6: обе темы работают, вспышки чужой темы нет. */
 test.describe('Темы', () => {
-  test('тема из cookie применяется сразу в SSR-разметке', async ({ page, context }) => {
-    await context.addCookies([
-      { name: 'vin2win.theme', value: 'dark', url: 'http://127.0.0.1:3000' },
-    ]);
+  test('тема из cookie применяется сразу в SSR-разметке', async ({ page, context, baseURL }) => {
+    // url берём из baseURL: с захардкоженным адресом кука не привязывалась
+    // к боевому домену и тест молча проверял тему по умолчанию
+    await context.addCookies([{ name: 'vin2win.theme', value: 'dark', url: baseURL! }]);
     await page.goto('/login');
 
     // Класс должен стоять на body уже в первом ответе сервера
@@ -16,10 +16,8 @@ test.describe('Темы', () => {
     expect(background).toBe('rgb(10, 10, 10)');
   });
 
-  test('светлая тема отдаёт светлый фон', async ({ page, context }) => {
-    await context.addCookies([
-      { name: 'vin2win.theme', value: 'light', url: 'http://127.0.0.1:3000' },
-    ]);
+  test('светлая тема отдаёт светлый фон', async ({ page, context, baseURL }) => {
+    await context.addCookies([{ name: 'vin2win.theme', value: 'light', url: baseURL! }]);
     await page.goto('/login');
 
     await expect(page.locator('body')).toHaveClass(/theme-light/);
