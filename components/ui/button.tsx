@@ -10,22 +10,22 @@ import { cn } from '@/lib/utils';
 const buttonVariants = cva(
   [
     'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md font-medium',
-    'transition-colors duration-150',
+    'transition-[color,background-color,border-color,box-shadow,transform] duration-150 active:translate-y-px',
     'disabled:pointer-events-none disabled:opacity-50',
     '[&_svg]:pointer-events-none [&_svg]:shrink-0',
   ].join(' '),
   {
     variants: {
       variant: {
-        // Зелёный — целевое действие, а не «любой акцент» (ТЗ 2.2)
-        primary: 'bg-[var(--brand)] text-[var(--brand-foreground)] hover:bg-[var(--primary)] shadow-soft',
+        primary:
+          'bg-[var(--brand)] text-[var(--brand-foreground)] hover:bg-[var(--primary)] shadow-soft',
         secondary:
           'bg-[var(--secondary)] text-[var(--secondary-foreground)] hover:bg-[var(--surface-2)] border border-[var(--border)]',
         outline:
           'border border-[var(--border-strong)] bg-transparent text-[var(--foreground)] hover:bg-[var(--surface)]',
-        ghost: 'bg-transparent text-[var(--text-secondary)] hover:bg-[var(--surface)] hover:text-[var(--foreground)]',
-        destructive:
-          'bg-[var(--destructive)] text-[var(--destructive-foreground)] hover:opacity-90 shadow-soft',
+        ghost:
+          'bg-transparent text-[var(--text-secondary)] hover:bg-[var(--surface)] hover:text-[var(--foreground)]',
+        destructive: 'bg-[var(--destructive-soft)] text-[var(--destructive)] hover:opacity-80',
         link: 'bg-transparent text-[var(--brand)] underline-offset-4 hover:underline dark:text-[var(--brand-text)]',
       },
       size: {

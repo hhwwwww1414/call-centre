@@ -44,8 +44,9 @@ export function SelectContent({
       <SelectPrimitive.Content
         position={position}
         className={cn(
-          'z-50 max-h-72 min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-md border border-[var(--border)] bg-[var(--popover)] text-[var(--popover-foreground)] shadow-overlay',
-          position === 'popper' && 'data-[side=bottom]:translate-y-1 data-[side=top]:-translate-y-1',
+          'overlay-enter menu-surface shadow-overlay z-50 max-h-72 min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-md border border-[var(--border)] text-[var(--popover-foreground)]',
+          position === 'popper' &&
+            'data-[side=bottom]:translate-y-1 data-[side=top]:-translate-y-1',
           className,
         )}
         {...props}
@@ -64,7 +65,7 @@ export function SelectItem({
   return (
     <SelectPrimitive.Item
       className={cn(
-        'relative flex cursor-pointer select-none items-center gap-2 rounded-sm py-2 pl-8 pr-2 text-sm outline-none',
+        'relative flex cursor-pointer items-center gap-2 rounded-sm py-2 pr-2 pl-8 text-sm outline-none select-none',
         'data-[highlighted]:bg-[var(--accent)] data-[highlighted]:text-[var(--foreground)]',
         'data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
         className,
@@ -87,7 +88,7 @@ export function SelectLabel({
 }: React.ComponentProps<typeof SelectPrimitive.Label>) {
   return (
     <SelectPrimitive.Label
-      className={cn('px-2 py-1.5 text-2xs font-medium text-[var(--text-muted)]', className)}
+      className={cn('text-2xs px-2 py-1.5 font-medium text-[var(--text-muted)]', className)}
       {...props}
     />
   );
@@ -98,6 +99,9 @@ export function SelectSeparator({
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.Separator>) {
   return (
-    <SelectPrimitive.Separator className={cn('my-1 h-px bg-[var(--border)]', className)} {...props} />
+    <SelectPrimitive.Separator
+      className={cn('my-1 h-px bg-[var(--border)]', className)}
+      {...props}
+    />
   );
 }

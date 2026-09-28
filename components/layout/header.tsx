@@ -66,15 +66,19 @@ export function Header({ user }: { user: { name: string; email: string; role: Ro
   const ThemeIcon = mode === 'system' ? Monitor : resolved === 'dark' ? Moon : Sun;
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b border-[var(--border)] bg-[var(--page)]/95 px-3 backdrop-blur sm:px-4">
-      <h1 className="display-heading shrink-0 truncate text-base text-[var(--foreground)] md:text-lg">
+    <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-3 border-b border-[var(--border)] bg-[var(--glass)] px-4 backdrop-blur-xl md:h-20 lg:px-7">
+      <h1 className="display-heading min-w-0 truncate text-base text-[var(--foreground)] md:text-xl">
         {pageTitle(pathname)}
       </h1>
 
-      <form onSubmit={submitSearch} className="ml-auto hidden max-w-xs flex-1 sm:block" role="search">
+      <form
+        onSubmit={submitSearch}
+        className="ml-auto hidden max-w-xs flex-1 sm:block"
+        role="search"
+      >
         <div className="relative">
           <Search
-            className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-[var(--text-muted)]"
+            className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-[var(--text-muted)]"
             aria-hidden
           />
           <Input
@@ -82,7 +86,7 @@ export function Header({ user }: { user: { name: string; email: string; role: Ro
             onChange={(event) => setSearch(event.target.value)}
             placeholder={ru.calls.searchPlaceholder}
             aria-label={ru.common.search}
-            className="h-9 pl-8 max-md:h-10"
+            className="h-9 border-transparent bg-[var(--surface)] pl-8 max-md:h-10"
             inputMode="search"
           />
         </div>
@@ -93,11 +97,16 @@ export function Header({ user }: { user: { name: string; email: string; role: Ro
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" aria-label={ru.notifications.title} className="relative">
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label={ru.notifications.title}
+              className="relative"
+            >
               <Bell aria-hidden />
               {notifications.length > 0 ? (
                 <span
-                  className="absolute right-2 top-2 size-2 rounded-full bg-[var(--price-margin-badge-bg)]"
+                  className="absolute top-2 right-2 size-2 rounded-full bg-[var(--price-margin-badge-bg)]"
                   aria-hidden
                 />
               ) : null}
@@ -188,7 +197,7 @@ export function MobileSearch() {
     >
       <div className="relative">
         <Search
-          className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-[var(--text-muted)]"
+          className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-[var(--text-muted)]"
           aria-hidden
         />
         <Input

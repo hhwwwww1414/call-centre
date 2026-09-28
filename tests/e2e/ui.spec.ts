@@ -13,7 +13,7 @@ test.describe('Темы', () => {
     // Класс должен стоять на body уже в первом ответе сервера
     await expect(page.locator('body')).toHaveClass(/theme-dark/);
     const background = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
-    expect(background).toBe('rgb(10, 10, 10)');
+    expect(background).toBe('rgb(0, 0, 0)');
   });
 
   test('светлая тема отдаёт светлый фон', async ({ page, context, baseURL }) => {
@@ -22,7 +22,7 @@ test.describe('Темы', () => {
 
     await expect(page.locator('body')).toHaveClass(/theme-light/);
     const background = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
-    expect(background).toBe('rgb(255, 255, 255)');
+    expect(background).toBe('rgb(245, 246, 245)');
   });
 
   test('инлайновый скрипт темы не бросает ошибок в консоль', async ({ page }) => {

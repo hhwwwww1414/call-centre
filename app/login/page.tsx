@@ -25,7 +25,7 @@ export default async function LoginPage() {
           </h1>
         </div>
 
-        <div className="surface-card p-5">
+        <div className="surface-card p-6 sm:p-7">
           <Suspense fallback={<Skeleton className="h-64 w-full" />}>
             <LoginForm />
           </Suspense>

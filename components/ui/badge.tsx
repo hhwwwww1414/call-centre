@@ -9,7 +9,7 @@ const badgeVariants = cva(
     variants: {
       tone: {
         neutral: 'bg-[var(--surface-2)] text-[var(--text-muted)] border border-[var(--border)]',
-        success: 'bg-[var(--success-soft)] text-[var(--brand)] dark:text-[var(--brand-text)]',
+        success: 'bg-[var(--success-soft)] text-[var(--success)]',
         danger: 'bg-[var(--destructive-soft)] text-[var(--destructive)]',
         // Жёлтый — редкий, только «требует внимания» (ТЗ 2.2)
         attention: 'bg-[var(--price-margin-badge-bg)] text-[var(--price-margin-badge-text)]',

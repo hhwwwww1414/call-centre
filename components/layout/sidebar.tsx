@@ -40,12 +40,12 @@ export function Sidebar({
     <aside
       className={cn(
         // На планшете сайдбар всегда в иконках, на десктопе — по выбору (ТЗ 2.5)
-        'hidden shrink-0 flex-col border-r border-[var(--border)] bg-[var(--surface-2)] transition-[width] duration-200 md:flex',
-        collapsed ? 'w-16' : 'w-16 lg:w-60',
+        'hidden shrink-0 flex-col border-r border-[var(--border)] bg-[var(--sidebar)] transition-[width] duration-200 md:flex',
+        collapsed ? 'w-16' : 'w-16 lg:w-56',
       )}
       data-collapsed={collapsed}
     >
-      <div className={cn('flex h-14 items-center gap-2 border-b border-[var(--border)] px-3')}>
+      <div className={cn('flex h-20 items-center gap-2 px-3 lg:px-4')}>
         <Link
           href="/"
           className="flex min-w-0 items-center gap-2.5"
@@ -53,15 +53,21 @@ export function Sidebar({
         >
           {/* В свёрнутом сайдбаре знак ужимается по ширине колонки,
               в развёрнутом — идёт в полный размер с подписью раздела */}
-          <Logo width={collapsed ? 40 : 40} className={cn('shrink-0', collapsed ? '' : 'lg:hidden')} />
+          <Logo
+            width={collapsed ? 40 : 40}
+            className={cn('shrink-0', collapsed ? '' : 'lg:hidden')}
+          />
           <span className={cn('min-w-0 flex-col gap-0.5', collapsed ? 'hidden' : 'hidden lg:flex')}>
             <Logo width={92} />
-            <span className="truncate text-2xs text-[var(--text-muted)]">{ru.app.subtitle}</span>
+            <span className="text-2xs truncate text-[var(--text-muted)]">{ru.app.subtitle}</span>
           </span>
         </Link>
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-2 py-3 scrollbar-none">
+      <nav
+        aria-label="Разделы CRM"
+        className="flex-1 scrollbar-none overflow-y-auto px-2 py-3 lg:px-3"
+      >
         <NavGroup
           title={ru.nav.sectionWork}
           items={work}
@@ -74,7 +80,7 @@ export function Sidebar({
             items={admin}
             pathname={pathname}
             collapsed={collapsed}
-            className="mt-4"
+            className="mt-7"
           />
         ) : null}
       </nav>
@@ -113,7 +119,7 @@ function NavGroup({
     <div className={className}>
       <p
         className={cn(
-          'px-2 pb-1.5 text-2xs font-medium uppercase tracking-wide text-[var(--text-muted)]',
+          'text-2xs px-2.5 pb-2.5 font-medium text-[var(--text-muted)]',
           collapsed ? 'hidden' : 'hidden lg:block',
         )}
       >
@@ -130,7 +136,7 @@ function NavGroup({
                 title={item.label}
                 aria-current={active ? 'page' : undefined}
                 className={cn(
-                  'flex h-10 items-center gap-3 rounded-lg px-2.5 text-xs font-medium transition-colors',
+                  'flex h-10 items-center gap-3 rounded-md px-2.5 text-xs font-medium transition-colors duration-200',
                   active
                     ? 'bg-[var(--brand-soft)] text-[var(--brand)] dark:text-[var(--brand-text)]'
                     : 'text-[var(--text-secondary)] hover:bg-[var(--surface)] hover:text-[var(--foreground)]',

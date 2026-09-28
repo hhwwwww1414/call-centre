@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter, Unbounded } from 'next/font/google';
+import { Inter } from 'next/font/google';
 import { cookies } from 'next/headers';
 
 import { AppProviders } from '@/components/providers';
@@ -12,14 +12,6 @@ import './globals.css';
 const inter = Inter({
   subsets: ['latin', 'cyrillic'],
   variable: '--font-inter',
-  display: 'swap',
-});
-
-// Unbounded — только заголовки экранов и цифры KPI (ТЗ 2.3)
-const unbounded = Unbounded({
-  subsets: ['latin', 'cyrillic'],
-  weight: ['700', '800'],
-  variable: '--font-unbounded',
   display: 'swap',
 });
 
@@ -39,8 +31,8 @@ export const viewport: Viewport = {
   initialScale: 1,
   viewportFit: 'cover',
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
-    { media: '(prefers-color-scheme: dark)', color: '#0a0a0a' },
+    { media: '(prefers-color-scheme: light)', color: '#f5f6f5' },
+    { media: '(prefers-color-scheme: dark)', color: '#000000' },
   ],
 };
 
@@ -55,7 +47,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   return (
     <html lang="ru" suppressHydrationWarning>
-      <body className={`${inter.variable} ${unbounded.variable} ${initialClass}`}>
+      {/* The pre-hydration script resolves system/local theme on this element. */}
+      <body
+        className={`${inter.variable} ${initialClass}`}
+        data-theme-mode={mode}
+        suppressHydrationWarning
+      >
         <ThemeScript />
         <AppProviders themeMode={mode}>{children}</AppProviders>
       </body>

@@ -17,7 +17,7 @@ export function Label({ className, ...props }: React.ComponentProps<typeof Label
 const controlClasses = [
   'w-full rounded-md border border-[var(--input)] bg-[var(--card)] px-3 text-sm text-[var(--foreground)]',
   'placeholder:text-[var(--text-muted)]',
-  'transition-colors focus-visible:border-[var(--ring)]',
+  'transition-[border-color,box-shadow] duration-150 focus-visible:border-[var(--ring)] focus-visible:ring-4 focus-visible:ring-[var(--brand-soft)] focus-visible:outline-none',
   'disabled:cursor-not-allowed disabled:opacity-60',
   'aria-[invalid=true]:border-[var(--destructive)]',
 ].join(' ');
@@ -27,7 +27,12 @@ export function Input({ className, ...props }: React.ComponentProps<'input'>) {
 }
 
 export function Textarea({ className, ...props }: React.ComponentProps<'textarea'>) {
-  return <textarea className={cn(controlClasses, 'min-h-24 py-2 leading-relaxed', className)} {...props} />;
+  return (
+    <textarea
+      className={cn(controlClasses, 'min-h-24 py-2 leading-relaxed', className)}
+      {...props}
+    />
+  );
 }
 
 type FieldProps = {

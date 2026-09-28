@@ -7,7 +7,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { EmptyState, TableSkeleton } from '@/components/ui/misc';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useAudit } from '@/lib/client/hooks';
 import { ru } from '@/lib/i18n/ru';
 import { formatInZone } from '@/lib/time';
@@ -92,7 +98,7 @@ export function AuditScreen({ timezone }: { timezone: string }) {
             <div className="hidden overflow-x-auto md:block">
               <table className="w-full border-collapse text-xs">
                 <thead>
-                  <tr className="border-b border-[var(--border)] text-left text-2xs uppercase tracking-wide text-[var(--text-muted)]">
+                  <tr className="text-2xs border-b border-[var(--border)] text-left text-[var(--text-muted)]">
                     <th scope="col" className="px-3 py-2.5 font-medium">
                       {ru.audit.columnDate}
                     </th>
@@ -113,7 +119,7 @@ export function AuditScreen({ timezone }: { timezone: string }) {
                 <tbody>
                   {rows.map((row) => (
                     <tr key={row.id} className="border-b border-[var(--border)] last:border-0">
-                      <td className="numeric whitespace-nowrap px-3 py-2.5 text-[var(--text-secondary)]">
+                      <td className="numeric px-3 py-2.5 whitespace-nowrap text-[var(--text-secondary)]">
                         {formatInZone(row.createdAt, timezone, 'datetime')}
                       </td>
                       <td className="max-w-44 px-3 py-2.5">
@@ -121,7 +127,7 @@ export function AuditScreen({ timezone }: { timezone: string }) {
                           {row.actor?.name ?? ru.audit.system}
                         </span>
                         {row.actor?.email ? (
-                          <span className="block truncate text-2xs text-[var(--text-muted)]">
+                          <span className="text-2xs block truncate text-[var(--text-muted)]">
                             {row.actor.email}
                           </span>
                         ) : null}
@@ -151,7 +157,7 @@ export function AuditScreen({ timezone }: { timezone: string }) {
                 <li key={row.id} className="surface-card flex flex-col gap-1 p-3">
                   <div className="flex items-start justify-between gap-2">
                     <Badge tone="neutral">{actionLabel(row.action)}</Badge>
-                    <span className="numeric shrink-0 text-2xs text-[var(--text-muted)]">
+                    <span className="numeric text-2xs shrink-0 text-[var(--text-muted)]">
                       {formatInZone(row.createdAt, timezone, 'short')}
                     </span>
                   </div>

@@ -12,7 +12,7 @@ export function BottomNav() {
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-30 border-t border-[var(--border)] bg-[var(--page)]/98 pb-safe backdrop-blur md:hidden"
+      className="pb-safe fixed inset-x-0 bottom-0 z-30 border-t border-[var(--border)] bg-[var(--glass)] backdrop-blur-xl md:hidden"
       aria-label="Основная навигация"
     >
       <ul className="grid grid-cols-4">
@@ -25,7 +25,7 @@ export function BottomNav() {
                 href={item.href}
                 aria-current={active ? 'page' : undefined}
                 className={cn(
-                  'flex min-h-[56px] flex-col items-center justify-center gap-1 px-1 py-2 text-2xs font-medium transition-colors',
+                  'text-2xs flex min-h-[56px] flex-col items-center justify-center gap-1 px-1 py-2 font-medium transition-colors',
                   active
                     ? 'text-[var(--brand)] dark:text-[var(--brand-text)]'
                     : 'text-[var(--text-muted)]',

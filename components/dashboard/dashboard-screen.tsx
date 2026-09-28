@@ -18,7 +18,13 @@ import { ManagersTable } from '@/components/dashboard/managers-table';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState, Skeleton } from '@/components/ui/misc';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useStats, useUsers } from '@/lib/client/hooks';
 import type { CallItem } from '@/lib/client/types';
 import { ru } from '@/lib/i18n/ru';
@@ -89,7 +95,9 @@ export function DashboardScreen({ role, timezone }: { role: Role; timezone: stri
         ) : null}
       </div>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div
+        className={`grid grid-cols-2 gap-3 ${isAdmin ? 'md:grid-cols-3 xl:grid-cols-6' : 'lg:grid-cols-4'}`}
+      >
         <KpiCard
           label={ru.dashboard.kpiTotal}
           value={kpi?.total ?? 0}
@@ -117,26 +125,25 @@ export function DashboardScreen({ role, timezone }: { role: Role; timezone: stri
           icon={Timer}
           loading={isLoading}
         />
+        {isAdmin ? (
+          <>
+            <KpiCard
+              label={ru.dashboard.kpiAvgWait}
+              value={`${kpi?.avgWaitSeconds ?? 0} с`}
+              hint="Среднее время до ответа"
+              icon={Clock}
+              loading={isLoading}
+            />
+            <KpiCard
+              label={ru.dashboard.kpiTalkTime}
+              value={formatDuration(kpi?.talkTimeSeconds ?? 0)}
+              hint="Суммарно за период"
+              icon={Timer}
+              loading={isLoading}
+            />
+          </>
+        ) : null}
       </div>
-
-      {isAdmin ? (
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <KpiCard
-            label={ru.dashboard.kpiAvgWait}
-            value={`${kpi?.avgWaitSeconds ?? 0} с`}
-            hint="Среднее время до ответа"
-            icon={Clock}
-            loading={isLoading}
-          />
-          <KpiCard
-            label={ru.dashboard.kpiTalkTime}
-            value={formatDuration(kpi?.talkTimeSeconds ?? 0)}
-            hint="Суммарно за период"
-            icon={Timer}
-            loading={isLoading}
-          />
-        </div>
-      ) : null}
 
       <div className="grid gap-3 lg:grid-cols-3">
         <Card className="lg:col-span-2">
@@ -160,7 +167,11 @@ export function DashboardScreen({ role, timezone }: { role: Role; timezone: stri
             <CardTitle>{ru.dashboard.byOutcome}</CardTitle>
           </CardHeader>
           <CardContent>
-            {isLoading ? <Skeleton className="h-60 w-full" /> : <OutcomePieChart data={data?.outcomes ?? []} />}
+            {isLoading ? (
+              <Skeleton className="h-60 w-full" />
+            ) : (
+              <OutcomePieChart data={data?.outcomes ?? []} />
+            )}
           </CardContent>
         </Card>
       </div>
@@ -171,7 +182,7 @@ export function DashboardScreen({ role, timezone }: { role: Role; timezone: stri
           <CardHeader>
             <div>
               <CardTitle>{ru.dashboard.callbackQueue}</CardTitle>
-              <p className="mt-0.5 text-2xs text-[var(--text-muted)]">
+              <p className="text-2xs mt-0.5 text-[var(--text-muted)]">
                 {ru.dashboard.callbackQueueHint}
               </p>
             </div>
@@ -182,11 +193,18 @@ export function DashboardScreen({ role, timezone }: { role: Role; timezone: stri
                 <Skeleton className="h-28 w-full" />
               </div>
             ) : (data?.callbackQueue.length ?? 0) === 0 ? (
-              <EmptyState title={ru.dashboard.emptyCallback} hint={ru.dashboard.emptyCallbackHint} />
+              <EmptyState
+                title={ru.dashboard.emptyCallback}
+                hint={ru.dashboard.emptyCallbackHint}
+              />
             ) : (
               <ul className="divide-y divide-[var(--border)]">
                 {data?.callbackQueue.map((call) => (
-                  <CallbackRow key={call.id} call={call} onOpen={() => router.push(`/calls/${call.id}`)} />
+                  <CallbackRow
+                    key={call.id}
+                    call={call}
+                    onOpen={() => router.push(`/calls/${call.id}`)}
+                  />
                 ))}
               </ul>
             )}
@@ -244,19 +262,28 @@ function CallbackRow({ call, onOpen }: { call: CallItem; onOpen: () => void }) {
   const number = externalNumber(call);
   return (
     <li className="flex items-center gap-2 px-4 py-2.5 sm:px-5">
-      <button type="button" onClick={onOpen} className="flex min-w-0 flex-1 items-center gap-2.5 text-left">
+      <button
+        type="button"
+        onClick={onOpen}
+        className="flex min-w-0 flex-1 items-center gap-2.5 text-left"
+      >
         <DirectionIcon direction={call.direction} status={call.status} className="shrink-0" />
         <span className="min-w-0 flex-1">
           <span className="numeric block truncate text-xs font-medium text-[var(--foreground)]">
             {call.contact?.name || formatPhone(number)}
           </span>
-          <span className="block truncate text-2xs text-[var(--text-muted)]">
+          <span className="text-2xs block truncate text-[var(--text-muted)]">
             {formatRelative(call.startedAt)}
           </span>
         </span>
         <OutcomeBadge outcome={call.outcome} />
       </button>
-      <Button variant="ghost" size="icon" asChild aria-label={`${ru.calls.call} ${formatPhone(number)}`}>
+      <Button
+        variant="ghost"
+        size="icon"
+        asChild
+        aria-label={`${ru.calls.call} ${formatPhone(number)}`}
+      >
         <a href={telHref(number)}>
           <PhoneCall aria-hidden />
         </a>
@@ -287,7 +314,7 @@ function RecentRow({
           <span className="numeric block truncate text-xs font-medium text-[var(--foreground)]">
             {call.contact?.name || formatPhone(number)}
           </span>
-          <span className="numeric block truncate text-2xs text-[var(--text-muted)]">
+          <span className="numeric text-2xs block truncate text-[var(--text-muted)]">
             {formatInZone(call.startedAt, timezone, 'short')}
             {call.durationSeconds > 0 ? ` · ${formatDuration(call.durationSeconds)}` : ''}
           </span>

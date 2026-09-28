@@ -26,7 +26,13 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Field, Input } from '@/components/ui/field';
 import { Avatar, EmptyState, TableSkeleton } from '@/components/ui/misc';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { apiFetch, ApiRequestError } from '@/lib/client/api';
 import { useCopy, useUsers } from '@/lib/client/hooks';
 import type { AccessResult, UserRow } from '@/lib/client/types';
@@ -34,7 +40,13 @@ import { ru } from '@/lib/i18n/ru';
 import { formatInZone } from '@/lib/time';
 import { cn } from '@/lib/utils';
 
-export function UsersScreen({ timezone, currentUserId }: { timezone: string; currentUserId: string }) {
+export function UsersScreen({
+  timezone,
+  currentUserId,
+}: {
+  timezone: string;
+  currentUserId: string;
+}) {
   const { data, isLoading, isError, refetch } = useUsers();
   const [createOpen, setCreateOpen] = React.useState(false);
   const [access, setAccess] = React.useState<{ user: string; access: AccessResult } | null>(null);
@@ -175,7 +187,7 @@ function UsersTable({
       <div className="hidden overflow-x-auto md:block">
         <table className="w-full border-collapse text-xs">
           <thead>
-            <tr className="border-b border-[var(--border)] text-left text-2xs uppercase tracking-wide text-[var(--text-muted)]">
+            <tr className="text-2xs border-b border-[var(--border)] text-left text-[var(--text-muted)]">
               <th scope="col" className="px-3 py-2.5 font-medium">
                 {ru.users.columnName}
               </th>
@@ -207,7 +219,7 @@ function UsersTable({
                     <Avatar name={user.name} size="sm" />
                     <div className="min-w-0">
                       <p className="truncate font-medium text-[var(--foreground)]">{user.name}</p>
-                      <p className="truncate text-2xs text-[var(--text-muted)]">{user.email}</p>
+                      <p className="text-2xs truncate text-[var(--text-muted)]">{user.email}</p>
                     </div>
                   </div>
                 </td>
@@ -224,8 +236,10 @@ function UsersTable({
                     {user.isActive ? ru.users.statusActive : ru.users.statusDisabled}
                   </Badge>
                 </td>
-                <td className="numeric hidden whitespace-nowrap px-3 py-2.5 text-[var(--text-muted)] xl:table-cell">
-                  {user.lastLoginAt ? formatInZone(user.lastLoginAt, timezone, 'datetime') : ru.common.never}
+                <td className="numeric hidden px-3 py-2.5 whitespace-nowrap text-[var(--text-muted)] xl:table-cell">
+                  {user.lastLoginAt
+                    ? formatInZone(user.lastLoginAt, timezone, 'datetime')
+                    : ru.common.never}
                 </td>
                 <td className="numeric px-3 py-2.5 text-right text-[var(--foreground)]">
                   {user.calls30d}
@@ -243,14 +257,18 @@ function UsersTable({
             <Avatar name={user.name} />
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium text-[var(--foreground)]">{user.name}</p>
-              <p className="truncate text-2xs text-[var(--text-muted)]">{user.email}</p>
+              <p className="text-2xs truncate text-[var(--text-muted)]">{user.email}</p>
               <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                <Badge tone={user.role === Role.ADMIN ? 'brand' : 'neutral'}>{ru.roles[user.role]}</Badge>
+                <Badge tone={user.role === Role.ADMIN ? 'brand' : 'neutral'}>
+                  {ru.roles[user.role]}
+                </Badge>
                 <Badge tone={user.isActive ? 'success' : 'outline'}>
                   {user.isActive ? ru.users.statusActive : ru.users.statusDisabled}
                 </Badge>
                 {user.extension ? (
-                  <span className="numeric text-2xs text-[var(--text-muted)]">доб. {user.extension}</span>
+                  <span className="numeric text-2xs text-[var(--text-muted)]">
+                    доб. {user.extension}
+                  </span>
                 ) : null}
               </div>
             </div>
@@ -473,7 +491,7 @@ function AccessDialog({
 
         <DialogBody className="flex flex-col gap-2">
           <div className="flex items-center gap-2">
-            <code className="min-w-0 flex-1 select-all break-all rounded-md bg-[var(--surface-2)] px-3 py-2.5 text-xs text-[var(--foreground)]">
+            <code className="min-w-0 flex-1 rounded-md bg-[var(--surface-2)] px-3 py-2.5 text-xs break-all text-[var(--foreground)] select-all">
               {secret}
             </code>
             <Button
@@ -486,7 +504,9 @@ function AccessDialog({
               {copied ? <Check aria-hidden /> : <Copy aria-hidden />}
             </Button>
           </div>
-          <p className={cn('text-2xs', copied ? 'text-[var(--brand)]' : 'text-[var(--text-muted)]')}>
+          <p
+            className={cn('text-2xs', copied ? 'text-[var(--brand)]' : 'text-[var(--text-muted)]')}
+          >
             {copied ? ru.common.copied : hint}
           </p>
         </DialogBody>

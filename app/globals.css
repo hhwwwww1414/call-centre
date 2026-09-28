@@ -12,57 +12,59 @@
    ───────────────────────────────────────────────────────────────────────── */
 
 :root {
-  /* Бренд — зелёный означает «принято / успешно / целевое действие» */
-  --primary: #16a34a;
+  /* VIN2WIN green for actions, selection, links, and focus. */
+  --primary: #166534;
   --ring: #16a34a;
-  --success: #16a34a;
+  --success: #23815b;
   --price-margin: #16a34a;
-  --brand: #15803d; /* кнопки: AA с белым текстом */
-  --brand-text: #22c55e; /* зелёный текст на тёмном */
+  --brand: #15803d;
+  --brand-text: #22c55e;
   --brand-foreground: #ffffff;
   --primary-foreground: #ffffff;
   --brand-soft: rgb(21 128 61 / 0.12);
   --accent: rgb(22 163 74 / 0.1);
   --accent-foreground: #15803d;
-  --success-soft: #e7f7ee;
+  --success-soft: #eaf5ef;
   --price-margin-soft: rgb(22 163 74 / 0.12);
 
   /* Вторичный акцент — «требует внимания». Редкий по замыслу. */
-  --price-margin-badge-bg: #ffd800;
-  --price-margin-badge-text: #2f2100;
+  --price-margin-badge-bg: #fbf0dc;
+  --price-margin-badge-text: #8b611d;
 
-  --destructive: #ef4444;
+  --destructive: #c94343;
   --destructive-foreground: #ffffff;
   --destructive-soft: rgb(239 68 68 / 0.12);
 
   /* Нейтрали — light */
-  --page: #ffffff;
+  --page: #f5f6f5;
+  --sidebar: #eef0ee;
+  --glass: rgb(245 246 245 / 0.86);
   --foreground: #0f1115;
   --text-primary: #0f1115;
-  --text-secondary: #374151;
-  --text-muted: #5f6874;
-  --muted-foreground: #6b7280;
+  --text-secondary: #474d4a;
+  --text-muted: #6a716d;
+  --muted-foreground: #6a716d;
   --card: #ffffff;
   --card-foreground: #0f1115;
   --popover: #ffffff;
   --popover-foreground: #0f1115;
-  --secondary: rgb(243 244 246 / 0.9);
+  --secondary: #ffffff;
   --secondary-foreground: #0f1115;
-  --surface: rgb(243 244 246 / 0.86);
-  --surface-2: rgb(247 248 250 / 0.82);
-  --muted: rgb(247 248 250 / 0.86);
-  --border: rgb(15 17 21 / 0.12);
-  --border-strong: #e5e7eb;
+  --surface: #edf0ee;
+  --surface-2: #f7f8f7;
+  --muted: #f0f2f0;
+  --border: rgb(15 17 21 / 0.08);
+  --border-strong: #d7dbd8;
   --input: rgb(15 17 21 / 0.12);
-  --price-market: #68707c;
-  --price-hand: #111827;
+  --price-market: #6a716d;
+  --price-hand: #0f1115;
 
   /* Seller card — тёмный блок в обеих темах */
-  --seller-card: #121417;
-  --seller-card-border: #24282d;
-  --seller-card-inner: #1c2024;
-  --seller-card-text: #f4f6f8;
-  --seller-card-muted: #9aa3ad;
+  --seller-card: #111111;
+  --seller-card-border: #262626;
+  --seller-card-inner: #1c1c1c;
+  --seller-card-text: #f5f5f5;
+  --seller-card-muted: #a3a3a3;
 
   /* Семантика статусов звонка (ТЗ 2.2) */
   --status-completed: var(--success);
@@ -76,17 +78,21 @@
 
   /* Диаграммы */
   --chart-1: #16a34a;
-  --chart-2: #0ea5e9;
-  --chart-3: #ffd800;
-  --chart-4: #ef4444;
-  --chart-5: #8b5cf6;
-  --chart-6: #f97316;
-  --chart-7: #64748b;
+  --chart-2: #a1d5b3;
+  --chart-3: #d8b16b;
+  --chart-4: #cf7c7c;
+  --chart-5: #8e9b79;
+  --chart-6: #bb9576;
+  --chart-7: #77847b;
 
-  --radius: 0.625rem;
-  --shadow-soft: 0 1px 2px rgb(15 17 21 / 0.05), 0 1px 3px rgb(15 17 21 / 0.06);
+  --radius: 0.875rem;
+  --shadow-soft: 0 1px 2px rgb(15 17 21 / 0.025);
   --shadow-raised: 0 4px 6px -1px rgb(15 17 21 / 0.07), 0 2px 4px -2px rgb(15 17 21 / 0.05);
   --shadow-overlay: 0 20px 25px -5px rgb(15 17 21 / 0.12), 0 8px 10px -6px rgb(15 17 21 / 0.08);
+
+  /* Нативные контролы (date, range, checkbox) — зелёные, а не системно-синие */
+  accent-color: var(--brand);
+  caret-color: var(--brand);
 
   color-scheme: light;
 }
@@ -96,32 +102,39 @@ body.theme-light {
 }
 
 body.theme-dark {
-  --page: #0a0a0a;
-  --foreground: #f4f7f7;
-  --text-primary: #f4f7f7;
-  --text-secondary: #d7dddd;
-  --text-muted: #a6b4b4;
-  --muted-foreground: #a6b4b4;
-  --card: #0f1214;
-  --card-foreground: #f4f7f7;
-  --popover: #0f1214;
-  --popover-foreground: #f4f7f7;
-  --secondary: #181c1f;
-  --secondary-foreground: #f4f7f7;
-  --surface: #181c1f;
-  --surface-2: #111416;
-  --muted: #111416;
+  --page: #000000;
+  --sidebar: #050505;
+  --glass: rgb(0 0 0 / 0.86);
+  --foreground: #f5f5f5;
+  --text-primary: #f5f5f5;
+  --text-secondary: #d4d4d4;
+  --text-muted: #a3a3a3;
+  --muted-foreground: #a3a3a3;
+  --card: #0a0a0a;
+  --card-foreground: #f5f5f5;
+  --popover: #141414;
+  --popover-foreground: #f5f5f5;
+  --secondary: #141414;
+  --secondary-foreground: #f5f5f5;
+  --surface: #1a1a1a;
+  --surface-2: #0f0f0f;
+  --muted: #0f0f0f;
   --border: rgb(255 255 255 / 0.11);
   --border-strong: rgb(255 255 255 / 0.18);
   --input: rgb(255 255 255 / 0.14);
-  --price-market: #8d979b;
-  --price-hand: #f8fafc;
+  --price-market: #9a9a9a;
+  --price-hand: #fafafa;
 
+  --brand: #15803d;
+  --brand-soft: rgb(22 163 74 / 0.16);
   --accent: rgb(22 163 74 / 0.16);
   --accent-foreground: #22c55e;
+  --success: #4ade80;
+  --destructive: #ef9494;
   --success-soft: rgb(22 163 74 / 0.16);
   --destructive-soft: rgb(239 68 68 / 0.18);
-  --price-margin-badge-text: #1f1600;
+  --price-margin-badge-bg: #3b3326;
+  --price-margin-badge-text: #e1be7d;
 
   --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.4);
   --shadow-raised: 0 4px 6px -1px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.4);
@@ -183,7 +196,7 @@ body.theme-dark {
   --color-chart-7: var(--chart-7);
 
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-unbounded), var(--font-inter), ui-sans-serif, sans-serif;
+  --font-display: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
 
   /* Шкала 12 / 13 / 14 / 16 / 20 / 28 / 40 (ТЗ 2.3) */
@@ -318,8 +331,8 @@ body.theme-dark {
 
 @utility display-heading {
   font-family: var(--font-display);
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-weight: 600;
+  letter-spacing: -0.035em;
 }
 
 @utility surface-card {
@@ -339,6 +352,96 @@ body.theme-dark {
 /* Безопасная зона под нижнюю навигацию на iOS */
 @utility pb-safe {
   padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Shared workspace rhythm keeps data screens consistent without changing their layout. */
+@layer components {
+  .workspace > div {
+    gap: 1.25rem;
+  }
+
+  .workspace table {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .workspace thead {
+    background: var(--surface-2);
+  }
+
+  .workspace thead tr {
+    text-transform: none;
+    letter-spacing: 0;
+  }
+
+  .workspace th {
+    height: 44px;
+  }
+
+  .workspace td {
+    height: 58px;
+  }
+
+  .workspace th:first-child,
+  .workspace td:first-child {
+    padding-left: 1.25rem;
+  }
+
+  .workspace th:last-child,
+  .workspace td:last-child {
+    padding-right: 1.25rem;
+  }
+
+  .workspace tbody tr:last-child {
+    border-bottom: 0;
+  }
+
+  .overlay-enter[data-state='open'] {
+    animation: overlay-enter 180ms ease-out;
+  }
+
+  .sheet-enter[data-state='open'] {
+    animation: sheet-enter 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  .menu-surface {
+    background: color-mix(in srgb, var(--popover) 94%, transparent);
+    backdrop-filter: blur(20px);
+  }
+
+  @media (max-width: 767px) {
+    input,
+    textarea,
+    select,
+    [role='combobox'] {
+      font-size: 16px;
+    }
+
+    [role='menuitem'],
+    [role='option'],
+    [role='tab'] {
+      min-height: 44px;
+    }
+  }
+}
+
+@keyframes overlay-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes sheet-enter {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 /* ─────────────────────────────────────────────────────────────────────────

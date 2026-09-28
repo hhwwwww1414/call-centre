@@ -21,7 +21,7 @@ export function DropdownMenuContent({
         sideOffset={sideOffset}
         align={align}
         className={cn(
-          'z-50 min-w-52 overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--popover)] p-1 text-[var(--popover-foreground)] shadow-overlay',
+          'overlay-enter menu-surface shadow-overlay z-50 min-w-52 overflow-hidden rounded-lg border border-[var(--border)] p-1.5 text-[var(--popover-foreground)]',
           className,
         )}
         {...props}
@@ -38,7 +38,7 @@ export function DropdownMenuItem({
   return (
     <DropdownMenuPrimitive.Item
       className={cn(
-        'flex cursor-pointer select-none items-center gap-2 rounded-md px-2.5 py-2 text-xs outline-none',
+        'flex cursor-pointer items-center gap-2 rounded-md px-2.5 py-2 text-xs outline-none select-none',
         'data-[highlighted]:bg-[var(--accent)]',
         'data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
         '[&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:text-[var(--text-muted)]',
@@ -56,7 +56,7 @@ export function DropdownMenuLabel({
 }: React.ComponentProps<typeof DropdownMenuPrimitive.Label>) {
   return (
     <DropdownMenuPrimitive.Label
-      className={cn('px-2.5 py-1.5 text-2xs font-medium text-[var(--text-muted)]', className)}
+      className={cn('text-2xs px-2.5 py-1.5 font-medium text-[var(--text-muted)]', className)}
       {...props}
     />
   );

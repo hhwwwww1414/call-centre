@@ -5,7 +5,7 @@ import type { LucideIcon } from 'lucide-react';
 import { Skeleton } from '@/components/ui/misc';
 import { cn } from '@/lib/utils';
 
-/** KPI-карточка. Цифра — крупная, шрифтом Unbounded (ТЗ 2.3). */
+/** Compact KPI with neutral values and semantic indicators. */
 export function KpiCard({
   label,
   value,
@@ -31,11 +31,9 @@ export function KpiCard({
           : 'var(--text-muted)';
 
   return (
-    <div className="surface-card flex flex-col gap-2 p-4">
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-2xs font-medium uppercase tracking-wide text-[var(--text-muted)]">
-          {label}
-        </p>
+    <div className="surface-card flex min-w-0 flex-col gap-4 p-4 sm:p-5">
+      <div className="flex min-h-10 items-start justify-between gap-2">
+        <p className="text-xs font-medium text-[var(--text-secondary)]">{label}</p>
         {Icon ? <Icon className="size-4 shrink-0" style={{ color: accent }} aria-hidden /> : null}
       </div>
 
@@ -44,7 +42,7 @@ export function KpiCard({
       ) : (
         <p
           className={cn('display-heading numeric text-xl leading-none sm:text-2xl')}
-          style={{ color: tone === 'neutral' ? 'var(--foreground)' : accent }}
+          style={{ color: 'var(--foreground)' }}
         >
           {value}
         </p>

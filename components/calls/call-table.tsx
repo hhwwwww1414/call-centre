@@ -36,7 +36,7 @@ export function CallTable({ calls, timezone, showManager, selectedId, onSelect }
     <div className="hidden overflow-x-auto md:block">
       <table className="w-full border-collapse text-xs">
         <thead>
-          <tr className="border-b border-[var(--border)] text-left text-2xs uppercase tracking-wide text-[var(--text-muted)]">
+          <tr className="text-2xs border-b border-[var(--border)] text-left text-[var(--text-muted)]">
             <th scope="col" className="px-3 py-2.5 font-medium">
               {ru.calls.columnStatus}
             </th>
@@ -102,7 +102,7 @@ export function CallTable({ calls, timezone, showManager, selectedId, onSelect }
                       {formatPhone(number)}
                     </span>
                     {call.contact?.name || call.contact?.company ? (
-                      <span className="truncate text-2xs text-[var(--text-muted)]">
+                      <span className="text-2xs truncate text-[var(--text-muted)]">
                         {[call.contact?.name, call.contact?.company].filter(Boolean).join(' · ')}
                       </span>
                     ) : null}
@@ -119,7 +119,7 @@ export function CallTable({ calls, timezone, showManager, selectedId, onSelect }
                   </td>
                 ) : null}
 
-                <td className="numeric whitespace-nowrap px-3 py-2.5 text-[var(--text-secondary)]">
+                <td className="numeric px-3 py-2.5 whitespace-nowrap text-[var(--text-secondary)]">
                   {formatInZone(call.startedAt, timezone, 'datetime')}
                 </td>
 

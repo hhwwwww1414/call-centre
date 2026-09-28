@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/field';
-import { EmptyState, Switch, TableSkeleton } from '@/components/ui/misc';
+import { Avatar, EmptyState, Switch, TableSkeleton } from '@/components/ui/misc';
 import { useContacts, useDebounced } from '@/lib/client/hooks';
 import type { ContactRow } from '@/lib/client/types';
 import { ru } from '@/lib/i18n/ru';
@@ -24,7 +24,11 @@ export function ContactsScreen({ timezone }: { timezone: string }) {
   const debounced = useDebounced(search);
 
   const params = React.useMemo(
-    () => ({ search: debounced.trim() || undefined, onlyBlocked: onlyBlocked || undefined, limit: 50 }),
+    () => ({
+      search: debounced.trim() || undefined,
+      onlyBlocked: onlyBlocked || undefined,
+      limit: 50,
+    }),
     [debounced, onlyBlocked],
   );
 
@@ -45,7 +49,11 @@ export function ContactsScreen({ timezone }: { timezone: string }) {
           className="max-w-xs flex-1"
         />
         <label className="flex min-h-11 items-center gap-2 text-xs text-[var(--text-secondary)] md:min-h-0">
-          <Switch checked={onlyBlocked} onCheckedChange={setOnlyBlocked} aria-label={ru.contacts.blocked} />
+          <Switch
+            checked={onlyBlocked}
+            onCheckedChange={setOnlyBlocked}
+            aria-label={ru.contacts.blocked}
+          />
           {ru.contacts.blocked}
         </label>
       </div>
@@ -74,7 +82,7 @@ export function ContactsScreen({ timezone }: { timezone: string }) {
             <div className="hidden overflow-x-auto md:block">
               <table className="w-full border-collapse text-xs">
                 <thead>
-                  <tr className="border-b border-[var(--border)] text-left text-2xs uppercase tracking-wide text-[var(--text-muted)]">
+                  <tr className="text-2xs border-b border-[var(--border)] text-left text-[var(--text-muted)]">
                     <th scope="col" className="px-3 py-2.5 font-medium">
                       {ru.contacts.columnName}
                     </th>
@@ -103,14 +111,18 @@ export function ContactsScreen({ timezone }: { timezone: string }) {
                       role="button"
                       onClick={() => router.push(`/contacts/${contact.id}`)}
                       onKeyDown={(event) => {
-                        if (event.key === 'Enter') router.push(`/contacts/${contact.id}`);
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          router.push(`/contacts/${contact.id}`);
+                        }
                       }}
                       className="cursor-pointer border-b border-[var(--border)] transition-colors hover:bg-[var(--surface)]"
                     >
                       <td className="max-w-52 px-3 py-2.5">
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-2.5">
+                          <Avatar name={contact.name ?? contact.company ?? '?'} size="sm" />
                           <span className="truncate font-medium text-[var(--foreground)]">
-                            {contact.name ?? '—'}
+                            {contact.name || contact.company || 'Без имени'}
                           </span>
                           {contact.isBlocked ? (
                             <Badge tone="danger">
@@ -120,7 +132,7 @@ export function ContactsScreen({ timezone }: { timezone: string }) {
                           ) : null}
                         </div>
                       </td>
-                      <td className="numeric whitespace-nowrap px-3 py-2.5 text-[var(--text-secondary)]">
+                      <td className="numeric px-3 py-2.5 whitespace-nowrap text-[var(--text-secondary)]">
                         {formatPhone(contact.phoneE164)}
                       </td>
                       <td className="hidden max-w-40 truncate px-3 py-2.5 text-[var(--text-secondary)] lg:table-cell">
@@ -132,7 +144,7 @@ export function ContactsScreen({ timezone }: { timezone: string }) {
                       <td className="numeric px-3 py-2.5 text-right text-[var(--foreground)]">
                         {contact.callsCount}
                       </td>
-                      <td className="numeric whitespace-nowrap px-3 py-2.5 text-[var(--text-muted)]">
+                      <td className="numeric px-3 py-2.5 whitespace-nowrap text-[var(--text-muted)]">
                         {contact.lastCall
                           ? formatInZone(contact.lastCall.startedAt, timezone, 'datetime')
                           : '—'}
@@ -191,7 +203,7 @@ function ContactCard({
               {contact.name ?? formatPhone(contact.phoneE164)}
             </span>
             {contact.name ? (
-              <span className="numeric block truncate text-2xs text-[var(--text-muted)]">
+              <span className="numeric text-2xs block truncate text-[var(--text-muted)]">
                 {formatPhone(contact.phoneE164)}
               </span>
             ) : null}
@@ -203,7 +215,7 @@ function ContactCard({
           ) : null}
         </div>
 
-        <div className="flex items-center gap-2 text-2xs text-[var(--text-muted)]">
+        <div className="text-2xs flex items-center gap-2 text-[var(--text-muted)]">
           {contact.lastCall ? (
             <>
               <DirectionIcon

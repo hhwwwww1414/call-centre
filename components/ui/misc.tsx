@@ -5,6 +5,7 @@ import * as SeparatorPrimitive from '@radix-ui/react-separator';
 import * as SwitchPrimitive from '@radix-ui/react-switch';
 import * as TabsPrimitive from '@radix-ui/react-tabs';
 import * as TooltipPrimitive from '@radix-ui/react-tooltip';
+import { UserRound } from 'lucide-react';
 import * as React from 'react';
 
 import { cn } from '@/lib/utils';
@@ -94,11 +95,13 @@ export function Avatar({
     <AvatarPrimitive.Root
       className={cn(
         'flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--brand-soft)] font-semibold text-[var(--brand)] dark:text-[var(--brand-text)]',
-        size === 'sm' ? 'size-7 text-2xs' : 'size-9 text-xs',
+        size === 'sm' ? 'text-2xs size-7' : 'size-9 text-xs',
         className,
       )}
     >
-      <AvatarPrimitive.Fallback>{letters || '?'}</AvatarPrimitive.Fallback>
+      <AvatarPrimitive.Fallback>
+        {letters && letters !== '?' ? letters : <UserRound className="size-3.5" aria-hidden />}
+      </AvatarPrimitive.Fallback>
     </AvatarPrimitive.Root>
   );
 }
@@ -136,7 +139,7 @@ export function Switch({ className, ...props }: React.ComponentProps<typeof Swit
       )}
       {...props}
     >
-      <SwitchPrimitive.Thumb className="pointer-events-none block size-5 translate-x-0.5 rounded-full bg-white shadow-soft transition-transform data-[state=checked]:translate-x-[22px]" />
+      <SwitchPrimitive.Thumb className="shadow-soft pointer-events-none block size-5 translate-x-0.5 rounded-full bg-white transition-transform data-[state=checked]:translate-x-[22px]" />
     </SwitchPrimitive.Root>
   );
 }
@@ -166,7 +169,7 @@ export function TabsTrigger({
       className={cn(
         'rounded-md px-3 py-1.5 text-xs font-medium text-[var(--text-muted)] transition-colors',
         'hover:text-[var(--foreground)]',
-        'data-[state=active]:bg-[var(--card)] data-[state=active]:text-[var(--foreground)] data-[state=active]:shadow-soft',
+        'data-[state=active]:shadow-soft data-[state=active]:bg-[var(--card)] data-[state=active]:text-[var(--foreground)]',
         className,
       )}
       {...props}
@@ -180,14 +183,20 @@ export const TabsContent = TabsPrimitive.Content;
 
 export const TooltipProvider = TooltipPrimitive.Provider;
 
-export function Tooltip({ content, children }: { content: React.ReactNode; children: React.ReactNode }) {
+export function Tooltip({
+  content,
+  children,
+}: {
+  content: React.ReactNode;
+  children: React.ReactNode;
+}) {
   return (
     <TooltipPrimitive.Root>
       <TooltipPrimitive.Trigger asChild>{children}</TooltipPrimitive.Trigger>
       <TooltipPrimitive.Portal>
         <TooltipPrimitive.Content
           sideOffset={6}
-          className="z-50 max-w-64 rounded-md border border-[var(--border)] bg-[var(--popover)] px-2.5 py-1.5 text-2xs text-[var(--popover-foreground)] shadow-overlay"
+          className="text-2xs shadow-overlay z-50 max-w-64 rounded-md border border-[var(--border)] bg-[var(--popover)] px-2.5 py-1.5 text-[var(--popover-foreground)]"
         >
           {content}
         </TooltipPrimitive.Content>

@@ -6,16 +6,12 @@ import { useRouter } from 'next/navigation';
 import * as React from 'react';
 import { toast } from 'sonner';
 
-import {
-  CallStatusBadge,
-  DirectionIcon,
-  OutcomeBadge,
-} from '@/components/calls/call-presentation';
+import { CallStatusBadge, DirectionIcon, OutcomeBadge } from '@/components/calls/call-presentation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Field, Input, Textarea } from '@/components/ui/field';
-import { EmptyState, Skeleton } from '@/components/ui/misc';
+import { Avatar, EmptyState, Skeleton, Tabs, TabsList, TabsTrigger } from '@/components/ui/misc';
 import { useContact, useUpdateContact } from '@/lib/client/hooks';
 import { ru } from '@/lib/i18n/ru';
 import { formatPhone, telHref } from '@/lib/phone';
@@ -30,6 +26,7 @@ export function ContactDetails({ contactId, timezone }: { contactId: string; tim
 
   const [form, setForm] = React.useState({ name: '', company: '', note: '' });
   const [dirty, setDirty] = React.useState(false);
+  const [mobileSection, setMobileSection] = React.useState('details');
 
   React.useEffect(() => {
     if (!data) return;
@@ -93,17 +90,23 @@ export function ContactDetails({ contactId, timezone }: { contactId: string; tim
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <Button variant="ghost" size="sm" onClick={() => router.push('/contacts')}>
+      <div className="flex flex-wrap items-center gap-3">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="max-sm:basis-full max-sm:justify-start"
+          onClick={() => router.push('/contacts')}
+        >
           <ArrowLeft aria-hidden />
           {ru.common.back}
         </Button>
+        <Avatar name={contact.name ?? contact.company ?? '?'} className="size-11" />
         <div className="min-w-0 flex-1">
-          <p className="truncate text-base font-semibold text-[var(--foreground)]">
+          <p className="text-base font-semibold tracking-tight break-words text-[var(--foreground)] sm:text-lg">
             {contact.name ?? formatPhone(contact.phoneE164)}
           </p>
           {contact.name ? (
-            <p className="numeric truncate text-2xs text-[var(--text-muted)]">
+            <p className="numeric text-2xs truncate text-[var(--text-muted)]">
               {formatPhone(contact.phoneE164)}
             </p>
           ) : null}
@@ -114,16 +117,26 @@ export function ContactDetails({ contactId, timezone }: { contactId: string; tim
             {ru.contacts.blocked}
           </Badge>
         ) : null}
-        <Button variant="secondary" size="sm" asChild>
-          <a href={telHref(contact.phoneE164)}>
+        <Button variant="primary" size="sm" asChild>
+          <a href={telHref(contact.phoneE164)} aria-label={ru.calls.call}>
             <Phone aria-hidden />
-            {ru.calls.call}
+            <span className="max-sm:hidden">{ru.calls.call}</span>
           </a>
         </Button>
       </div>
 
-      <div className="grid gap-3 lg:grid-cols-3">
-        <Card className="lg:col-span-1">
+      <Tabs value={mobileSection} onValueChange={setMobileSection} className="lg:hidden">
+        <TabsList className="w-full">
+          <TabsTrigger value="details" className="flex-1">
+            {ru.contacts.title}
+          </TabsTrigger>
+          <TabsTrigger value="history" className="flex-1">
+            {ru.contacts.history}
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
+      <div className="grid items-start gap-5 lg:grid-cols-3">
+        <Card className={`lg:col-span-1 ${mobileSection !== 'details' ? 'hidden lg:block' : ''}`}>
           <CardHeader>
             <CardTitle>{ru.contacts.title}</CardTitle>
           </CardHeader>
@@ -161,7 +174,13 @@ export function ContactDetails({ contactId, timezone }: { contactId: string; tim
             </Field>
 
             <div className="flex flex-wrap gap-2">
-              <Button variant="primary" size="sm" onClick={save} loading={update.isPending} disabled={!dirty}>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={save}
+                loading={update.isPending}
+                disabled={!dirty}
+              >
                 {ru.common.save}
               </Button>
               <Button
@@ -177,11 +196,11 @@ export function ContactDetails({ contactId, timezone }: { contactId: string; tim
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-2">
+        <Card className={`lg:col-span-2 ${mobileSection !== 'history' ? 'hidden lg:block' : ''}`}>
           <CardHeader>
             <div>
               <CardTitle>{ru.contacts.history}</CardTitle>
-              <p className="mt-0.5 text-2xs text-[var(--text-muted)]">
+              <p className="text-2xs mt-0.5 text-[var(--text-muted)]">
                 {pluralWithCount(calls.length, 'звонок', 'звонка', 'звонков')}
               </p>
             </div>
@@ -195,13 +214,17 @@ export function ContactDetails({ contactId, timezone }: { contactId: string; tim
                   <li key={call.id}>
                     <Link
                       href={`/calls/${call.id}`}
-                      className="flex items-center gap-2.5 px-4 py-2.5 transition-colors hover:bg-[var(--surface)] sm:px-5"
+                      className="flex flex-wrap items-center gap-3 px-4 py-4 transition-colors hover:bg-[var(--surface)] sm:px-5"
                     >
-                      <DirectionIcon direction={call.direction} status={call.status} className="shrink-0" />
+                      <DirectionIcon
+                        direction={call.direction}
+                        status={call.status}
+                        className="shrink-0"
+                      />
                       <span className="numeric min-w-0 flex-1 truncate text-xs text-[var(--text-secondary)]">
                         {formatInZone(call.startedAt, timezone, 'datetime')}
                       </span>
-                      <span className="numeric shrink-0 text-2xs text-[var(--text-muted)]">
+                      <span className="numeric text-2xs shrink-0 text-[var(--text-muted)]">
                         {call.durationSeconds > 0 ? formatDuration(call.durationSeconds) : '—'}
                       </span>
                       <span className="hidden shrink-0 sm:block">
