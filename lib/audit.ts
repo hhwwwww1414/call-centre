@@ -18,6 +18,8 @@ export type AuditAction =
   | 'call.outcome.update'
   | 'call.comment.update'
   | 'call.tags.update'
+  | 'call.summary.update'
+  | 'call.important.update'
   | 'call.export'
   | 'call.test.generate'
   | 'call.result.update'

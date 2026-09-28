@@ -31,7 +31,16 @@ export async function PATCH(request: Request, { params }: Params) {
     // отредактировать чужой звонок, подставив его id
     const existing = await prisma.call.findFirst({
       where: { id, ...callScopeFilter(user) },
-      select: { id: true, outcome: true, comment: true, tags: true, result: true, userId: true },
+      select: {
+        id: true,
+        outcome: true,
+        comment: true,
+        tags: true,
+        result: true,
+        userId: true,
+        summary: true,
+        isImportant: true,
+      },
     });
     if (!existing) throw notFound('Звонок не найден или недоступен');
 
@@ -82,16 +91,29 @@ export async function PATCH(request: Request, { params }: Params) {
         action: 'call.comment.update',
         entityType: 'Call',
         entityId: id,
+        meta: { from: existing.comment, to: call.comment },
       });
     }
-    if (input.tags !== undefined) {
+    if (input.tags !== undefined && JSON.stringify(existing.tags) !== JSON.stringify(call.tags)) {
       await writeAudit({
         actorId: user.id,
         action: 'call.tags.update',
         entityType: 'Call',
         entityId: id,
-        meta: { tags: call.tags },
+        meta: { from: existing.tags, to: call.tags },
       });
+    }
+
+    for (const field of ['summary', 'isImportant'] as const) {
+      if (input[field] !== undefined && existing[field] !== call[field]) {
+        await writeAudit({
+          actorId: user.id,
+          action: field === 'summary' ? 'call.summary.update' : 'call.important.update',
+          entityType: 'Call',
+          entityId: id,
+          meta: { from: existing[field], to: call[field] },
+        });
+      }
     }
 
     if (input.result !== undefined && input.result !== existing.result) {

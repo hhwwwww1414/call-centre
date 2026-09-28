@@ -81,10 +81,10 @@ export function AudioPlayer({ src, className }: { src: string; className?: strin
           value={current}
           onChange={(event) => seek(Number(event.target.value))}
           aria-label="Перемотка записи"
-          className="h-1.5 flex-1 cursor-pointer appearance-none rounded-full bg-[var(--border-strong)] accent-[var(--brand)]"
+          className="h-1.5 min-w-0 flex-1 cursor-pointer appearance-none rounded-full bg-[var(--border-strong)] accent-[var(--brand)]"
         />
 
-        <span className="numeric shrink-0 text-2xs tabular-nums text-[var(--text-muted)]">
+        <span className="numeric text-2xs shrink-0 text-[var(--text-muted)] tabular-nums">
           {formatDuration(current)} / {formatDuration(duration)}
         </span>
       </div>

@@ -178,8 +178,27 @@ export type ContactDetailsResponse = {
     isBlocked: boolean;
     ownerId: string | null;
     owner: { id: string; name: string; extension: string | null } | null;
+    createdAt: string;
+    updatedAt: string;
   };
   calls: CallItem[];
+  total: number;
+  nextCursor: string | null;
+  summary: {
+    calls: number;
+    durationSeconds: number;
+    lastCallAt: string | null;
+    recordings: number;
+    comments: number;
+    taggedCalls: number;
+    tags: string[];
+  };
+};
+
+export type ContactHistoryView = 'all' | 'recordings' | 'comments' | 'tags';
+export type ContactAuditResponse = {
+  items: Array<Omit<AuditRow, 'ip' | 'actor'> & { actor: { id: string; name: string } | null }>;
+  nextCursor: string | null;
 };
 
 export type UserRow = {

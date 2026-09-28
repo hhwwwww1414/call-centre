@@ -19,6 +19,8 @@ import type {
   TaskItem,
   TaskListResponse,
   ContactDetailsResponse,
+  ContactHistoryView,
+  ContactAuditResponse,
   ContactListResponse,
   StatsResponse,
   TelephonyStatusResponse,
@@ -59,6 +61,8 @@ export function useUpdateCall(id: string) {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['calls'] });
       void queryClient.invalidateQueries({ queryKey: ['stats'] });
+      void queryClient.invalidateQueries({ queryKey: ['contacts'] });
+      void queryClient.invalidateQueries({ queryKey: ['audit'] });
     },
   });
 }
@@ -88,6 +92,8 @@ export function useSubmitCallResult() {
       void queryClient.invalidateQueries({ queryKey: ['calls'] });
       void queryClient.invalidateQueries({ queryKey: ['stats'] });
       void queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      void queryClient.invalidateQueries({ queryKey: ['contacts'] });
+      void queryClient.invalidateQueries({ queryKey: ['audit'] });
     },
   });
 }
@@ -183,11 +189,29 @@ export function useContacts(params: CallQueryParams) {
   });
 }
 
-export function useContact(id: string | null) {
-  return useQuery({
-    queryKey: ['contacts', 'detail', id],
-    queryFn: () => apiFetch<ContactDetailsResponse>(`/api/contacts/${id}`),
+export function useContact(id: string | null, view: ContactHistoryView = 'all', tag?: string) {
+  return useInfiniteQuery({
+    queryKey: ['contacts', 'detail', id, view, tag],
+    initialPageParam: undefined as string | undefined,
+    queryFn: ({ pageParam }) =>
+      apiFetch<ContactDetailsResponse>(
+        `/api/contacts/${id}${buildQuery({ view, tag, cursor: pageParam })}`,
+      ),
+    getNextPageParam: (page) => page.nextCursor ?? undefined,
     enabled: Boolean(id),
+  });
+}
+
+export function useContactAudit(id: string, enabled: boolean) {
+  return useInfiniteQuery({
+    queryKey: ['contacts', 'audit', id],
+    initialPageParam: undefined as string | undefined,
+    queryFn: ({ pageParam }) =>
+      apiFetch<ContactAuditResponse>(
+        `/api/contacts/${id}/audit${buildQuery({ cursor: pageParam })}`,
+      ),
+    getNextPageParam: (page) => page.nextCursor ?? undefined,
+    enabled,
   });
 }
 
@@ -196,8 +220,12 @@ export function useUpdateContact(id: string) {
   return useMutation({
     mutationFn: (input: Record<string, unknown>) =>
       apiFetch(`/api/contacts/${id}`, { method: 'PATCH', body: JSON.stringify(input) }),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['contacts'] });
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['contacts'] }),
+        queryClient.invalidateQueries({ queryKey: ['calls'] }),
+        queryClient.invalidateQueries({ queryKey: ['audit'] }),
+      ]);
     },
   });
 }

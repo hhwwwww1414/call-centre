@@ -502,6 +502,8 @@ export const ru = {
     'auth.login.failed': 'Неудачный вход',
     'call.outcome.update': 'Изменён результат звонка',
     'call.comment.update': 'Изменён комментарий',
+    'call.summary.update': 'Изменено резюме звонка',
+    'call.important.update': 'Изменена отметка «Важный звонок»',
     'call.tags.update': 'Изменены теги',
     'call.export': 'Выгрузка звонков',
     'call.test.generate': 'Сгенерирован тестовый звонок',

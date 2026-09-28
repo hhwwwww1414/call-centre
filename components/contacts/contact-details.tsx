@@ -1,19 +1,19 @@
 'use client';
 
 import type { Role } from '@prisma/client';
-import { ArrowLeft, Ban, ShieldCheck, UserCheck } from 'lucide-react';
+import { ArrowLeft, Ban, ShieldCheck, UserCheck, ChevronDown, ChevronUp } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import * as React from 'react';
 import { toast } from 'sonner';
 
 import { CallButton } from '@/components/calls/call-button';
-import { CallStatusBadge, DirectionIcon, OutcomeBadge } from '@/components/calls/call-presentation';
+import { ContactActivity } from '@/components/contacts/contact-activity';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Field, Input, Textarea } from '@/components/ui/field';
-import { Avatar, EmptyState, Skeleton, Tabs, TabsList, TabsTrigger } from '@/components/ui/misc';
+import { Avatar, EmptyState, Skeleton } from '@/components/ui/misc';
 import {
   Select,
   SelectContent,
@@ -40,22 +40,23 @@ export function ContactDetails({
   role: Role;
 }) {
   const router = useRouter();
-  const { data, isLoading, isError } = useContact(contactId);
+  const { data: pages, isLoading, isError } = useContact(contactId);
+  const data = pages?.pages[0];
   const update = useUpdateContact(contactId);
 
   const [form, setForm] = React.useState({ name: '', company: '', note: '' });
   const [dirty, setDirty] = React.useState(false);
-  const [mobileSection, setMobileSection] = React.useState('details');
+  const [detailsOpen, setDetailsOpen] = React.useState(false);
 
   React.useEffect(() => {
-    if (!data) return;
+    if (!data || dirty) return;
     setForm({
       name: data.contact.name ?? '',
       company: data.contact.company ?? '',
       note: data.contact.note ?? '',
     });
     setDirty(false);
-  }, [data]);
+  }, [data, dirty]);
 
   if (isLoading) {
     return (
@@ -82,7 +83,7 @@ export function ContactDetails({
     );
   }
 
-  const { contact, calls } = data;
+  const { contact, summary } = data;
 
   const save = () => {
     update.mutate(
@@ -139,20 +140,30 @@ export function ContactDetails({
         <CallButton phone={contact.phoneE164} iconOnly={false} variant="primary" />
       </div>
 
-      <Tabs value={mobileSection} onValueChange={setMobileSection} className="lg:hidden">
-        <TabsList className="w-full">
-          <TabsTrigger value="details" className="flex-1">
-            {ru.contacts.title}
-          </TabsTrigger>
-          <TabsTrigger value="history" className="flex-1">
-            {ru.contacts.history}
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
-      <div className="grid items-start gap-5 lg:grid-cols-3">
-        <Card className={`lg:col-span-1 ${mobileSection !== 'details' ? 'hidden lg:block' : ''}`}>
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-[var(--text-secondary)]">
+        <span>{pluralWithCount(summary.calls, 'звонок', 'звонка', 'звонков')}</span>
+        <span>{formatDuration(summary.durationSeconds)} в разговоре</span>
+        <span>
+          Последний звонок:{' '}
+          {summary.lastCallAt
+            ? formatInZone(summary.lastCallAt, timezone, 'datetime')
+            : 'ещё не было'}
+        </span>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="lg:hidden"
+          onClick={() => setDetailsOpen(!detailsOpen)}
+          aria-expanded={detailsOpen}
+          aria-controls="client-details"
+        >
+          Данные клиента {detailsOpen ? <ChevronUp aria-hidden /> : <ChevronDown aria-hidden />}
+        </Button>
+      </div>
+      <div className="grid items-start gap-5 lg:grid-cols-[minmax(260px,320px)_minmax(0,1fr)]">
+        <Card id="client-details" className={detailsOpen ? '' : 'hidden lg:block'}>
           <CardHeader>
-            <CardTitle>{ru.contacts.title}</CardTitle>
+            <CardTitle>Данные клиента</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
             <OwnerField
@@ -224,51 +235,12 @@ export function ContactDetails({
                 {contact.isBlocked ? ru.contacts.unblock : ru.contacts.block}
               </Button>
             </div>
+            <p className="text-2xs text-[var(--text-muted)]">
+              В CRM с {formatInZone(contact.createdAt, timezone, 'date')}
+            </p>
           </CardContent>
         </Card>
-
-        <Card className={`lg:col-span-2 ${mobileSection !== 'history' ? 'hidden lg:block' : ''}`}>
-          <CardHeader>
-            <div>
-              <CardTitle>{ru.contacts.history}</CardTitle>
-              <p className="text-2xs mt-0.5 text-[var(--text-muted)]">
-                {pluralWithCount(calls.length, 'звонок', 'звонка', 'звонков')}
-              </p>
-            </div>
-          </CardHeader>
-          <CardContent className="px-0 sm:px-0">
-            {calls.length === 0 ? (
-              <EmptyState title={ru.calls.contactHistoryEmpty} />
-            ) : (
-              <ul className="divide-y divide-[var(--border)]">
-                {calls.map((call) => (
-                  <li key={call.id}>
-                    <Link
-                      href={`/calls/${call.id}`}
-                      className="flex flex-wrap items-center gap-3 px-4 py-4 transition-colors hover:bg-[var(--surface)] sm:px-5"
-                    >
-                      <DirectionIcon
-                        direction={call.direction}
-                        status={call.status}
-                        className="shrink-0"
-                      />
-                      <span className="numeric min-w-0 flex-1 truncate text-xs text-[var(--text-secondary)]">
-                        {formatInZone(call.startedAt, timezone, 'datetime')}
-                      </span>
-                      <span className="numeric text-2xs shrink-0 text-[var(--text-muted)]">
-                        {call.durationSeconds > 0 ? formatDuration(call.durationSeconds) : '—'}
-                      </span>
-                      <span className="hidden shrink-0 sm:block">
-                        <CallStatusBadge status={call.status} />
-                      </span>
-                      <OutcomeBadge outcome={call.outcome} className="shrink-0" />
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
+        <ContactActivity contactId={contactId} timezone={timezone} summary={summary} />
       </div>
     </div>
   );

@@ -10,6 +10,12 @@ export const dynamic = 'force-dynamic';
 export default async function ContactPage({ params }: { params: Promise<{ id: string }> }) {
   const [user, { id }] = await Promise.all([requireUserPage(), params]);
   return (
-    <ContactDetails contactId={id} timezone={user.timezone} userId={user.id} role={user.role} />
+    <ContactDetails
+      key={id}
+      contactId={id}
+      timezone={user.timezone}
+      userId={user.id}
+      role={user.role}
+    />
   );
 }
