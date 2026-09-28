@@ -3,6 +3,7 @@ import { writeAudit } from '@/lib/audit';
 import { callScopeFilter, requireUser } from '@/lib/auth/rbac';
 import { prisma } from '@/lib/db';
 import { getCallForUser } from '@/lib/services/calls';
+import { syncTaskCompletion } from '@/lib/services/tasks';
 import { callUpdateSchema } from '@/lib/validation';
 
 export const runtime = 'nodejs';
@@ -30,7 +31,7 @@ export async function PATCH(request: Request, { params }: Params) {
     // отредактировать чужой звонок, подставив его id
     const existing = await prisma.call.findFirst({
       where: { id, ...callScopeFilter(user) },
-      select: { id: true, outcome: true, comment: true, tags: true },
+      select: { id: true, outcome: true, comment: true, tags: true, result: true, userId: true },
     });
     if (!existing) throw notFound('Звонок не найден или недоступен');
 
@@ -41,12 +42,29 @@ export async function PATCH(request: Request, { params }: Params) {
       data.tags = Array.from(new Set(input.tags.map((t) => t.trim()).filter(Boolean)));
     }
 
+    if (input.summary !== undefined) data.summary = input.summary?.trim() || null;
+    if (input.isImportant !== undefined) data.isImportant = input.isImportant;
+    if (input.result !== undefined) {
+      data.result = input.result;
+      data.resultAt = input.result ? new Date() : null;
+      data.resultById = input.result ? user.id : null;
+    }
+
     if (Object.keys(data).length === 0) return { ok: true };
 
     const call = await prisma.call.update({
       where: { id },
       data,
-      select: { id: true, outcome: true, comment: true, tags: true, updatedAt: true },
+      select: {
+        id: true,
+        outcome: true,
+        comment: true,
+        tags: true,
+        result: true,
+        summary: true,
+        isImportant: true,
+        updatedAt: true,
+      },
     });
 
     if (input.outcome !== undefined && input.outcome !== existing.outcome) {
@@ -74,6 +92,17 @@ export async function PATCH(request: Request, { params }: Params) {
         entityId: id,
         meta: { tags: call.tags },
       });
+    }
+
+    if (input.result !== undefined && input.result !== existing.result) {
+      await writeAudit({
+        actorId: user.id,
+        action: 'call.result.update',
+        entityType: 'Call',
+        entityId: id,
+        meta: { from: existing.result, to: input.result },
+      });
+      await syncTaskCompletion(existing.userId);
     }
 
     return call;

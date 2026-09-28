@@ -14,12 +14,15 @@ export async function GET(request: Request) {
     const user = await requireUser();
     const filters = parseQuery(contactFiltersSchema, request.url);
 
-    // Менеджер видит только те контакты, с которыми сам разговаривал
+    // Менеджер видит контакты, с которыми сам разговаривал, и своих клиентов
     const scope: Prisma.ContactWhereInput = canSeeAllCalls(user.role)
-      ? { calls: { some: {} } }
-      : { calls: { some: { userId: user.id } } };
+      ? { OR: [{ calls: { some: {} } }, { ownerId: { not: null } }] }
+      : { OR: [{ calls: { some: { userId: user.id } } }, { ownerId: user.id }] };
 
-    const where: Prisma.ContactWhereInput = { ...scope };
+    const where: Prisma.ContactWhereInput = { AND: [scope] };
+    if (filters.owner === 'me') where.ownerId = user.id;
+    else if (filters.owner === 'none') where.ownerId = null;
+    else if (filters.owner && canSeeAllCalls(user.role)) where.ownerId = filters.owner;
     if (filters.onlyBlocked) where.isBlocked = true;
 
     const search = filters.search?.trim();
@@ -41,6 +44,7 @@ export async function GET(request: Request) {
         company: true,
         note: true,
         isBlocked: true,
+        owner: { select: { id: true, name: true } },
         _count: { select: { calls: true } },
         calls: {
           where: canSeeAllCalls(user.role) ? {} : { userId: user.id },

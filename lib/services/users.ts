@@ -15,6 +15,7 @@ export const USER_LIST_SELECT = {
   email: true,
   phone: true,
   extension: true,
+  personalNumber: true,
   role: true,
   isActive: true,
   mustChangePassword: true,
@@ -56,6 +57,7 @@ export async function issueOneTimePassword(userId: string): Promise<string> {
 export async function assertUnique(input: {
   email?: string;
   extension?: string | null;
+  personalNumber?: string | null;
   excludeUserId?: string;
 }) {
   if (input.email) {
@@ -77,6 +79,18 @@ export async function assertUnique(input: {
       throw conflict(ru.users.extensionTaken, { extension: ru.users.extensionTaken });
     }
   }
+
+  if (input.personalNumber) {
+    const existing = await prisma.user.findFirst({
+      where: { personalNumber: input.personalNumber },
+      select: { id: true },
+    });
+    if (existing && existing.id !== input.excludeUserId) {
+      throw conflict(ru.users.personalNumberTaken, {
+        personalNumber: ru.users.personalNumberTaken,
+      });
+    }
+  }
 }
 
 /** Звонков за 30 дней — колонка в таблице пользователей (ТЗ 5.6). */
@@ -90,7 +104,10 @@ export async function callCountsLast30Days(): Promise<Map<string, number>> {
   return new Map(rows.map((row) => [row.userId ?? '', row._count._all]));
 }
 
-export function isLastActiveAdmin(users: { id: string; role: Role; isActive: boolean }[], userId: string) {
+export function isLastActiveAdmin(
+  users: { id: string; role: Role; isActive: boolean }[],
+  userId: string,
+) {
   const activeAdmins = users.filter((u) => u.role === Role.ADMIN && u.isActive);
   return activeAdmins.length === 1 && activeAdmins[0]?.id === userId;
 }

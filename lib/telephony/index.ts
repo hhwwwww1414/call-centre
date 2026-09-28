@@ -1,8 +1,11 @@
 import { ExolveTelephonyProvider } from '@/lib/telephony/providers/exolve';
 import { MockTelephonyProvider } from '@/lib/telephony/providers/mock';
+import { SipuniTelephonyProvider } from '@/lib/telephony/providers/sipuni';
 import type { TelephonyProvider } from '@/lib/telephony/types';
 
-export type ProviderName = 'mock' | 'exolve';
+export type ProviderName = 'mock' | 'exolve' | 'sipuni';
+
+export const PROVIDER_NAMES: ProviderName[] = ['mock', 'exolve', 'sipuni'];
 
 /**
  * Переход с демо-режима на боевую телефонию — это смена одной переменной
@@ -10,7 +13,7 @@ export type ProviderName = 'mock' | 'exolve';
  */
 export function getProviderName(): ProviderName {
   const raw = (process.env.TELEPHONY_PROVIDER ?? 'mock').trim().toLowerCase();
-  return raw === 'exolve' ? 'exolve' : 'mock';
+  return PROVIDER_NAMES.includes(raw as ProviderName) ? (raw as ProviderName) : 'mock';
 }
 
 const instances = new Map<ProviderName, TelephonyProvider>();
@@ -20,7 +23,11 @@ export function getTelephonyProvider(name: ProviderName = getProviderName()): Te
   if (existing) return existing;
 
   const provider: TelephonyProvider =
-    name === 'exolve' ? new ExolveTelephonyProvider() : new MockTelephonyProvider();
+    name === 'exolve'
+      ? new ExolveTelephonyProvider()
+      : name === 'sipuni'
+        ? new SipuniTelephonyProvider()
+        : new MockTelephonyProvider();
   instances.set(name, provider);
   return provider;
 }
@@ -34,4 +41,4 @@ export function webhookUrl(baseUrl: string, provider: ProviderName = getProvider
   return `${baseUrl.replace(/\/+$/, '')}/api/webhooks/${provider}`;
 }
 
-export { MockTelephonyProvider, ExolveTelephonyProvider };
+export { MockTelephonyProvider, ExolveTelephonyProvider, SipuniTelephonyProvider };

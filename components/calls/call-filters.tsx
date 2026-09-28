@@ -14,7 +14,13 @@ import { Button } from '@/components/ui/button';
 import { BottomSheetContent, Dialog, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Field, Input } from '@/components/ui/field';
 import { Switch } from '@/components/ui/misc';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import type { UserRow } from '@/lib/client/types';
 import { ru } from '@/lib/i18n/ru';
 
@@ -27,6 +33,7 @@ export type CallFiltersValue = {
   search: string;
   hasRecording: boolean;
   hasComment: boolean;
+  important: boolean;
 };
 
 export const EMPTY_FILTERS: CallFiltersValue = {
@@ -34,6 +41,7 @@ export const EMPTY_FILTERS: CallFiltersValue = {
   search: '',
   hasRecording: false,
   hasComment: false,
+  important: false,
 };
 
 const ALL = '__all__';
@@ -47,6 +55,7 @@ export function countActiveFilters(value: CallFiltersValue): number {
   if (value.search.trim()) count += 1;
   if (value.hasRecording) count += 1;
   if (value.hasComment) count += 1;
+  if (value.important) count += 1;
   if (value.period.preset !== EMPTY_FILTERS.period.preset) count += 1;
   return count;
 }
@@ -89,19 +98,29 @@ export function CallFilters({ value, onChange, managers = [], showManagerFilter 
         />
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button variant="outline" size="icon" aria-label={ru.common.filters} className="relative">
+            <Button
+              variant="outline"
+              size="icon"
+              aria-label={ru.common.filters}
+              className="relative"
+            >
               <SlidersHorizontal aria-hidden />
               {active > 0 ? (
-                <span className="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-[var(--brand)] text-[10px] font-semibold text-[var(--brand-foreground)]">
+                <span className="absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full bg-[var(--brand)] text-[10px] font-semibold text-[var(--brand-foreground)]">
                   {active}
                 </span>
               ) : null}
             </Button>
           </DialogTrigger>
           <BottomSheetContent>
-            <div className="flex items-center justify-between px-4 pb-2 pt-4">
+            <div className="flex items-center justify-between px-4 pt-4 pb-2">
               <DialogTitle className="text-sm font-semibold">{ru.common.filters}</DialogTitle>
-              <Button variant="ghost" size="icon" onClick={() => setOpen(false)} aria-label={ru.common.close}>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setOpen(false)}
+                aria-label={ru.common.close}
+              >
                 <X aria-hidden />
               </Button>
             </div>
@@ -122,7 +141,7 @@ export function CallFilters({ value, onChange, managers = [], showManagerFilter 
         <button
           type="button"
           onClick={() => onChange(EMPTY_FILTERS)}
-          className="hidden items-center gap-1 text-2xs text-[var(--text-muted)] hover:text-[var(--foreground)] md:inline-flex"
+          className="text-2xs hidden items-center gap-1 text-[var(--text-muted)] hover:text-[var(--foreground)] md:inline-flex"
         >
           <X className="size-3" aria-hidden />
           {ru.common.reset}
@@ -256,6 +275,14 @@ function FilterControls({
             aria-label={ru.calls.hasComment}
           />
           {ru.calls.hasComment}
+        </label>
+        <label className="flex min-h-11 items-center gap-2 text-xs text-[var(--text-secondary)] md:min-h-0">
+          <Switch
+            checked={value.important}
+            onCheckedChange={(checked) => set({ important: checked })}
+            aria-label={ru.callResult.filterImportant}
+          />
+          {ru.callResult.filterImportant}
         </label>
       </div>
     </>

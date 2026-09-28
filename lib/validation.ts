@@ -1,4 +1,12 @@
-import { CallDirection, CallOutcome, CallStatus, Role } from '@prisma/client';
+import {
+  CallDirection,
+  CallOutcome,
+  CallResult,
+  CallStatus,
+  Role,
+  TaskMetric,
+  TaskStatus,
+} from '@prisma/client';
 import { z } from 'zod';
 
 import { MIN_PASSWORD_LENGTH } from '@/lib/auth/password';
@@ -46,6 +54,8 @@ export const callFiltersSchema = z.object({
   search: z.string().trim().max(120).optional(),
   hasRecording: z.coerce.boolean().optional(),
   hasComment: z.coerce.boolean().optional(),
+  important: z.coerce.boolean().optional(),
+  result: z.enum(['SUCCESS', 'FAILURE', 'NONE']).optional(),
   cursor: z.string().optional(),
   limit: z.coerce.number().int().min(1).max(200).default(50),
 });
@@ -55,6 +65,59 @@ export const callUpdateSchema = z.object({
   outcome: z.nativeEnum(CallOutcome).optional(),
   comment: z.string().max(4000, 'Комментарий длиннее 4000 символов').nullish(),
   tags: z.array(z.string().trim().min(1).max(40)).max(12, 'Не больше 12 тегов').optional(),
+  result: z.nativeEnum(CallResult).nullish(),
+  summary: z.string().max(4000, 'Резюме длиннее 4000 символов').nullish(),
+  isImportant: z.boolean().optional(),
+});
+
+/** Итог звонка из всплывающего окна: результат обязателен, резюме — по ситуации. */
+export const callResultSchema = z.object({
+  result: z.nativeEnum(CallResult, { message: 'Отметьте, успешный звонок или нет' }),
+  outcome: z.nativeEnum(CallOutcome).optional(),
+  summary: z.string().trim().max(4000, 'Резюме длиннее 4000 символов').optional(),
+  isImportant: z.boolean().default(false),
+});
+
+const isoDate = z.string().datetime({ offset: true, message: 'Проверьте дату' });
+
+export const taskCreateSchema = z
+  .object({
+    title: z.string().trim().min(2, 'Назовите задачу').max(120, 'Слишком длинное название'),
+    description: z.string().trim().max(1000).optional(),
+    metric: z.nativeEnum(TaskMetric).default(TaskMetric.CALLS),
+    target: z.coerce
+      .number({ message: 'Укажите число' })
+      .int('Только целое число')
+      .min(1, 'Минимум 1 звонок')
+      .max(10_000, 'Не больше 10 000'),
+    assigneeIds: z
+      .array(z.string().min(1))
+      .min(1, 'Выберите хотя бы одного менеджера')
+      .max(100, 'Не больше 100 исполнителей'),
+    startsAt: isoDate.optional(),
+    dueAt: isoDate.optional(),
+  })
+  .refine((v) => !v.dueAt || new Date(v.dueAt).getTime() > Date.now(), {
+    message: 'Срок должен быть в будущем',
+    path: ['dueAt'],
+  })
+  .refine((v) => !v.dueAt || !v.startsAt || new Date(v.dueAt) > new Date(v.startsAt), {
+    message: 'Срок раньше начала',
+    path: ['dueAt'],
+  });
+export type TaskCreateInput = z.input<typeof taskCreateSchema>;
+
+export const taskUpdateSchema = z.object({
+  title: z.string().trim().min(2, 'Назовите задачу').max(120).optional(),
+  description: z.string().trim().max(1000).nullish(),
+  target: z.coerce.number().int().min(1).max(10_000).optional(),
+  dueAt: isoDate.nullish(),
+  status: z.nativeEnum(TaskStatus).optional(),
+});
+
+export const taskFiltersSchema = z.object({
+  status: z.enum(['active', 'completed', 'canceled', 'all']).default('active'),
+  userId: z.string().optional(),
 });
 
 export const contactUpdateSchema = z.object({
@@ -62,6 +125,7 @@ export const contactUpdateSchema = z.object({
   company: z.string().trim().max(120).nullish(),
   note: z.string().trim().max(2000).nullish(),
   isBlocked: z.boolean().optional(),
+  ownerId: z.string().min(1).nullish(),
 });
 
 export const userCreateSchema = z.object({
@@ -75,6 +139,7 @@ export const userCreateSchema = z.object({
     .optional()
     .transform((v) => (v ? v : undefined))
     .refine((v) => v === undefined || /^[0-9*#+]{2,20}$/.test(v), 'Добавочный — только цифры'),
+  personalNumber: optionalPhoneSchema,
   role: z.nativeEnum(Role).default(Role.MANAGER),
   timezone: z.string().trim().min(1).default('Europe/Moscow'),
   /** invite — ссылка-приглашение (основной путь), password — одноразовый пароль. */
@@ -85,13 +150,25 @@ export type UserCreateInput = z.input<typeof userCreateSchema>;
 export const userUpdateSchema = z.object({
   name: z.string().trim().min(2).max(120).optional(),
   phone: optionalPhoneSchema,
+  // Поле не пришло — не трогаем (undefined), пришло пустым — очищаем (null).
+  // Иначе деактивация, где полей нет вовсе, стирала бы добавочный
   extension: z
     .string()
     .trim()
     .max(20)
     .nullish()
-    .transform((v) => (v ? v : null))
-    .refine((v) => v === null || /^[0-9*#+]{2,20}$/.test(v), 'Добавочный — только цифры'),
+    .transform((v) => (v === undefined ? undefined : v || null))
+    .refine(
+      (v) => v === undefined || v === null || /^[0-9*#+]{2,20}$/.test(v),
+      'Добавочный — только цифры',
+    ),
+  personalNumber: z
+    .string()
+    .trim()
+    .nullish()
+    .transform((v) => (v === undefined ? undefined : v || null))
+    .refine((v) => v === undefined || v === null || isValidPhone(v), 'Проверьте номер телефона')
+    .transform((v) => (v ? toE164(v) : v)),
   role: z.nativeEnum(Role).optional(),
   timezone: z.string().trim().min(1).optional(),
   isActive: z.boolean().optional(),
@@ -136,6 +213,8 @@ export const auditFiltersSchema = z.object({
 
 export const contactFiltersSchema = z.object({
   search: z.string().trim().max(120).optional(),
+  /** me — мои клиенты, none — без ответственного, иначе id менеджера */
+  owner: z.string().optional(),
   onlyBlocked: z.coerce.boolean().optional(),
   cursor: z.string().optional(),
   limit: z.coerce.number().int().min(1).max(100).default(50),

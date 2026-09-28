@@ -17,8 +17,8 @@ export interface TelephonyProvider {
     userId: string;
   }): Promise<{ externalId: string }>;
 
-  /** Проверить подпись входящего вебхука. */
-  verifyWebhook(req: { rawBody: string; headers: Record<string, string> }): boolean;
+  /** Проверить подпись входящего вебхука. url — для провайдеров с токеном в адресе. */
+  verifyWebhook(req: { rawBody: string; headers: Record<string, string>; url?: string }): boolean;
 
   /** Привести сырой payload провайдера к нашей модели события. */
   parseEvent(rawBody: unknown): NormalizedCallEvent | null;
@@ -44,7 +44,7 @@ export type NormalizedCallEvent = {
   durationSeconds?: number;
   waitSeconds?: number;
   recordingUrl?: string;
-  /** Прямое указание менеджера — mock знает его сразу, Exolve выведет по extension. */
+  /** Прямое указание менеджера — mock знает его сразу, АТС выведет по extension. */
   userId?: string;
   raw: unknown;
 };

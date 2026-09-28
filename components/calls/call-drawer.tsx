@@ -2,12 +2,13 @@
 
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import type { CallOutcome } from '@prisma/client';
-import { Check, FileAudio, Phone, Sparkles, Tag, X } from 'lucide-react';
+import { Check, FileAudio, Sparkles, Star, Tag, ThumbsDown, ThumbsUp, X } from 'lucide-react';
 import Link from 'next/link';
 import * as React from 'react';
 import { toast } from 'sonner';
 
 import { AudioPlayer } from '@/components/calls/audio-player';
+import { CallButton } from '@/components/calls/call-button';
 import {
   CallStatusBadge,
   DirectionIcon,
@@ -20,13 +21,19 @@ import { Button } from '@/components/ui/button';
 import { Dialog, SheetContent } from '@/components/ui/dialog';
 import { Field, Input, Label, Textarea } from '@/components/ui/field';
 import { EmptyState, Separator, Skeleton } from '@/components/ui/misc';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useCall, useUpdateCall } from '@/lib/client/hooks';
 import type { CallHistoryItem } from '@/lib/client/types';
 import { ru } from '@/lib/i18n/ru';
-import { formatPhone, telHref } from '@/lib/phone';
+import { formatPhone } from '@/lib/phone';
 import { formatInZone } from '@/lib/time';
-import { formatDuration, formatDurationWords } from '@/lib/utils';
+import { cn, formatDuration, formatDurationWords } from '@/lib/utils';
 
 export function CallDrawer({
   callId,
@@ -106,11 +113,7 @@ function DrawerBody({
         </div>
 
         <div className="flex shrink-0 items-center gap-1">
-          <Button variant="ghost" size="icon" asChild aria-label={ru.calls.call}>
-            <a href={telHref(number)}>
-              <Phone aria-hidden />
-            </a>
-          </Button>
+          <CallButton phone={number} />
           <Button variant="ghost" size="icon" onClick={onClose} aria-label={ru.common.close}>
             <X aria-hidden />
           </Button>
@@ -138,13 +141,38 @@ function DrawerBody({
 
           <Separator />
 
+          <ResultEditor
+            result={call.result}
+            important={call.isImportant}
+            onChange={(input) =>
+              update.mutate(input, {
+                onError: () =>
+                  toast.error(ru.errors.saveFailed, { description: ru.errors.saveFailedHint }),
+              })
+            }
+          />
+
+          <CommentEditor
+            callId={callId}
+            id="call-summary-edit"
+            label={ru.callResult.summary}
+            placeholder={ru.callResult.summaryPlaceholder}
+            initial={call.summary ?? ''}
+            onSave={(summary) =>
+              update.mutateAsync({ summary }).catch(() => {
+                toast.error(ru.errors.saveFailed, { description: ru.errors.saveFailedHint });
+              })
+            }
+          />
+
           <OutcomeEditor
             value={call.outcome}
             onChange={(outcome) => {
               update.mutate(
                 { outcome },
                 {
-                  onError: () => toast.error(ru.errors.saveFailed, { description: ru.errors.saveFailedHint }),
+                  onError: () =>
+                    toast.error(ru.errors.saveFailed, { description: ru.errors.saveFailedHint }),
                 },
               );
             }}
@@ -167,7 +195,8 @@ function DrawerBody({
               update.mutate(
                 { tags },
                 {
-                  onError: () => toast.error(ru.errors.saveFailed, { description: ru.errors.saveFailedHint }),
+                  onError: () =>
+                    toast.error(ru.errors.saveFailed, { description: ru.errors.saveFailedHint }),
                 },
               );
             }}
@@ -175,9 +204,13 @@ function DrawerBody({
 
           <Separator />
 
-          <ContactHistory history={history} timezone={timezone} contactId={call.contact?.id ?? null} />
+          <ContactHistory
+            history={history}
+            timezone={timezone}
+            contactId={call.contact?.id ?? null}
+          />
 
-          <dl className="grid grid-cols-2 gap-2 rounded-lg bg-[var(--surface-2)] p-3 text-2xs">
+          <dl className="text-2xs grid grid-cols-2 gap-2 rounded-lg bg-[var(--surface-2)] p-3">
             <div>
               <dt className="text-[var(--text-muted)]">{ru.calls.provider}</dt>
               <dd className="text-[var(--text-secondary)]">{call.provider}</dd>
@@ -205,7 +238,12 @@ function Timeline({
   call,
   timezone,
 }: {
-  call: { startedAt: string; answeredAt: string | null; endedAt: string | null; waitSeconds: number | null };
+  call: {
+    startedAt: string;
+    answeredAt: string | null;
+    endedAt: string | null;
+    waitSeconds: number | null;
+  };
   timezone: string;
 }) {
   const steps = [
@@ -262,7 +300,7 @@ function TranscriptSection() {
       </h3>
       <div className="rounded-lg border border-dashed border-[var(--border-strong)] p-4">
         <p className="text-xs text-[var(--text-secondary)]">{ru.calls.transcriptUnavailable}</p>
-        <p className="mt-1 text-2xs text-[var(--text-muted)]">{ru.calls.transcriptHint}</p>
+        <p className="text-2xs mt-1 text-[var(--text-muted)]">{ru.calls.transcriptHint}</p>
         <div className="mt-3 flex flex-col gap-2 opacity-40" aria-hidden>
           {[0, 1].map((index) => (
             <div key={index} className="flex gap-2">
@@ -276,6 +314,76 @@ function TranscriptSection() {
         </div>
       </div>
     </section>
+  );
+}
+
+/** Итог и «важный» — те же отметки, что во всплывающем окне, но с правкой задним числом. */
+function ResultEditor({
+  result,
+  important,
+  onChange,
+}: {
+  result: 'SUCCESS' | 'FAILURE' | null;
+  important: boolean;
+  onChange: (input: { result?: 'SUCCESS' | 'FAILURE' | null; isImportant?: boolean }) => void;
+}) {
+  const options = [
+    {
+      value: 'SUCCESS' as const,
+      label: ru.callResult.SUCCESS,
+      icon: ThumbsUp,
+      color: 'var(--success)',
+      soft: 'var(--success-soft)',
+    },
+    {
+      value: 'FAILURE' as const,
+      label: ru.callResult.FAILURE,
+      icon: ThumbsDown,
+      color: 'var(--destructive)',
+      soft: 'var(--destructive-soft)',
+    },
+  ];
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Label>{ru.callResult.title}</Label>
+      <div className="flex flex-wrap items-center gap-2">
+        {options.map((option) => {
+          const active = result === option.value;
+          const Icon = option.icon;
+          return (
+            <button
+              key={option.value}
+              type="button"
+              aria-pressed={active}
+              onClick={() => onChange({ result: active ? null : option.value })}
+              className="flex h-9 items-center gap-1.5 rounded-md border px-3 text-xs font-medium transition-colors max-md:h-11"
+              style={
+                active
+                  ? { borderColor: option.color, backgroundColor: option.soft, color: option.color }
+                  : { borderColor: 'var(--border)', color: 'var(--text-secondary)' }
+              }
+            >
+              <Icon className="size-4" aria-hidden />
+              {option.label}
+            </button>
+          );
+        })}
+        <button
+          type="button"
+          aria-pressed={important}
+          onClick={() => onChange({ isImportant: !important })}
+          className={cn(
+            'ml-auto flex h-9 items-center gap-1.5 rounded-md border px-3 text-xs font-medium transition-colors max-md:h-11',
+            important
+              ? 'border-transparent bg-[var(--price-margin-badge-bg)] text-[var(--price-margin-badge-text)]'
+              : 'border-[var(--border)] text-[var(--text-secondary)]',
+          )}
+        >
+          <Star className={cn('size-4', important && 'fill-current')} aria-hidden />
+          {ru.callResult.important}
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -303,7 +411,9 @@ function OutcomeEditor({
             ))}
           </SelectContent>
         </Select>
-        {saving ? <span className="text-2xs text-[var(--text-muted)]">{ru.common.saving}</span> : null}
+        {saving ? (
+          <span className="text-2xs text-[var(--text-muted)]">{ru.common.saving}</span>
+        ) : null}
       </div>
     </Field>
   );
@@ -314,10 +424,16 @@ function CommentEditor({
   callId,
   initial,
   onSave,
+  id = 'call-comment',
+  label = ru.calls.comment,
+  placeholder = ru.calls.commentPlaceholder,
 }: {
   callId: string;
   initial: string;
   onSave: (comment: string) => Promise<unknown>;
+  id?: string;
+  label?: string;
+  placeholder?: string;
 }) {
   const [value, setValue] = React.useState(initial);
   const [status, setStatus] = React.useState<'idle' | 'saving' | 'saved'>('idle');
@@ -343,15 +459,21 @@ function CommentEditor({
 
   return (
     <Field
-      label={ru.calls.comment}
-      htmlFor="call-comment"
-      hint={status === 'saving' ? ru.common.saving : status === 'saved' ? ru.common.saved : ru.calls.commentAutosave}
+      label={label}
+      htmlFor={id}
+      hint={
+        status === 'saving'
+          ? ru.common.saving
+          : status === 'saved'
+            ? ru.common.saved
+            : ru.calls.commentAutosave
+      }
     >
       <Textarea
-        id="call-comment"
+        id={id}
         value={value}
         onChange={(event) => setValue(event.target.value)}
-        placeholder={ru.calls.commentPlaceholder}
+        placeholder={placeholder}
         maxLength={4000}
       />
     </Field>
@@ -427,7 +549,9 @@ function ContactHistory({
   return (
     <section>
       <div className="mb-2 flex items-baseline justify-between gap-2">
-        <h3 className="text-xs font-semibold text-[var(--foreground)]">{ru.calls.contactHistory}</h3>
+        <h3 className="text-xs font-semibold text-[var(--foreground)]">
+          {ru.calls.contactHistory}
+        </h3>
         {contactId ? (
           <Link
             href={`/contacts/${contactId}`}
@@ -445,7 +569,7 @@ function ContactHistory({
           {history.map((item) => (
             <li key={item.id} className="flex items-center gap-2 py-2">
               <DirectionIcon direction={item.direction} status={item.status} />
-              <span className="numeric flex-1 text-2xs text-[var(--text-secondary)]">
+              <span className="numeric text-2xs flex-1 text-[var(--text-secondary)]">
                 {formatInZone(item.startedAt, timezone, 'datetime')}
               </span>
               <span className="numeric text-2xs text-[var(--text-muted)]">

@@ -40,7 +40,11 @@ export async function POST(request: Request) {
     const admin = await requireAdmin();
     const input = userCreateSchema.parse(await request.json());
 
-    await assertUnique({ email: input.email, extension: input.extension ?? null });
+    await assertUnique({
+      email: input.email,
+      extension: input.extension ?? null,
+      personalNumber: input.personalNumber ?? null,
+    });
 
     const user = await prisma.user.create({
       data: {
@@ -48,6 +52,7 @@ export async function POST(request: Request) {
         email: input.email,
         phone: input.phone ?? null,
         extension: input.extension ?? null,
+        personalNumber: input.personalNumber ?? null,
         role: input.role,
         timezone: input.timezone,
         createdById: admin.id,

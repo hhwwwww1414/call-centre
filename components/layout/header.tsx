@@ -1,10 +1,11 @@
 'use client';
 
 import type { Role } from '@prisma/client';
-import { Bell, Monitor, Moon, Search, Sun } from 'lucide-react';
+import { Bell, ClipboardCheck, Monitor, Moon, Search, Sun } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import * as React from 'react';
 
+import { useCallResults } from '@/components/calls/call-result-dialog';
 import { RealtimeIndicator } from '@/components/layout/realtime-indicator';
 import { UserMenu } from '@/components/layout/user-menu';
 import { useRealtime } from '@/components/providers/realtime-provider';
@@ -32,6 +33,7 @@ export function Header({ user }: { user: { name: string; email: string; role: Ro
   const router = useRouter();
   const { mode, resolved, setMode } = useTheme();
   const { lastEvent } = useRealtime();
+  const { pendingCount, openPending } = useCallResults();
 
   const [search, setSearch] = React.useState('');
   const [notifications, setNotifications] = React.useState<Notification[]>([]);
@@ -94,6 +96,22 @@ export function Header({ user }: { user: { name: string; email: string; role: Ro
 
       <div className="ml-auto flex items-center gap-1 sm:ml-0">
         <RealtimeIndicator />
+
+        {pendingCount > 0 ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={openPending}
+            className="gap-1.5 text-[var(--price-margin-badge-text)] dark:text-[var(--price-margin-badge-text)]"
+            title={ru.callResult.pendingHint}
+          >
+            <ClipboardCheck aria-hidden />
+            <span className="hidden lg:inline">{ru.callResult.pendingBadge}</span>
+            <span className="numeric text-2xs flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--price-margin-badge-bg)] px-1.5 font-semibold">
+              {pendingCount}
+            </span>
+          </Button>
+        ) : null}
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

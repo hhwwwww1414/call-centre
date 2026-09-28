@@ -5,13 +5,14 @@ import { buildListenerConfig } from '@/lib/realtime/pg-config';
 
 export const CALL_EVENTS_CHANNEL = 'call_events';
 
+/** По каналу идут и звонки, и задачи: у задачи userId — это исполнитель. */
 export type CallEvent = {
-  event: 'call.created' | 'call.updated';
+  event: 'call.created' | 'call.updated' | 'task.created' | 'task.updated' | 'task.deleted';
   id: string;
   userId: string | null;
   status: string;
-  direction: string;
-  outcome: string;
+  direction?: string;
+  outcome?: string;
   at: string;
 };
 

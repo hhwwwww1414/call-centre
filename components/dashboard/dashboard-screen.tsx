@@ -11,10 +11,12 @@ import {
   externalNumber,
   OutcomeBadge,
 } from '@/components/calls/call-presentation';
+import { CallButton } from '@/components/calls/call-button';
 import { PeriodPicker, type PeriodValue } from '@/components/common/period-picker';
 import { CallsBySeriesChart, OutcomePieChart } from '@/components/dashboard/charts';
 import { KpiCard } from '@/components/dashboard/kpi-card';
 import { ManagersTable } from '@/components/dashboard/managers-table';
+import { TasksWidget } from '@/components/tasks/tasks-widget';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState, Skeleton } from '@/components/ui/misc';
@@ -28,7 +30,7 @@ import {
 import { useStats, useUsers } from '@/lib/client/hooks';
 import type { CallItem } from '@/lib/client/types';
 import { ru } from '@/lib/i18n/ru';
-import { formatPhone, telHref } from '@/lib/phone';
+import { formatPhone } from '@/lib/phone';
 import { formatInZone, formatRelative } from '@/lib/time';
 import { formatDuration } from '@/lib/utils';
 
@@ -94,6 +96,8 @@ export function DashboardScreen({ role, timezone }: { role: Role; timezone: stri
           </Select>
         ) : null}
       </div>
+
+      <TasksWidget role={role} timezone={timezone} />
 
       <div
         className={`grid grid-cols-2 gap-3 ${isAdmin ? 'md:grid-cols-3 xl:grid-cols-6' : 'lg:grid-cols-4'}`}
@@ -278,16 +282,7 @@ function CallbackRow({ call, onOpen }: { call: CallItem; onOpen: () => void }) {
         </span>
         <OutcomeBadge outcome={call.outcome} />
       </button>
-      <Button
-        variant="ghost"
-        size="icon"
-        asChild
-        aria-label={`${ru.calls.call} ${formatPhone(number)}`}
-      >
-        <a href={telHref(number)}>
-          <PhoneCall aria-hidden />
-        </a>
-      </Button>
+      <CallButton phone={number} />
     </li>
   );
 }

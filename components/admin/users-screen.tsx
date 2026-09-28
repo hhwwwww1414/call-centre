@@ -2,7 +2,7 @@
 
 import { Role } from '@prisma/client';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Check, Copy, KeyRound, Mail, MoreHorizontal, UserPlus, Users } from 'lucide-react';
+import { Check, Copy, KeyRound, Mail, MoreHorizontal, Pencil, UserPlus, Users } from 'lucide-react';
 import * as React from 'react';
 import { toast } from 'sonner';
 
@@ -37,6 +37,7 @@ import { apiFetch, ApiRequestError } from '@/lib/client/api';
 import { useCopy, useUsers } from '@/lib/client/hooks';
 import type { AccessResult, UserRow } from '@/lib/client/types';
 import { ru } from '@/lib/i18n/ru';
+import { formatPhone } from '@/lib/phone';
 import { formatInZone } from '@/lib/time';
 import { cn } from '@/lib/utils';
 
@@ -50,6 +51,7 @@ export function UsersScreen({
   const { data, isLoading, isError, refetch } = useUsers();
   const [createOpen, setCreateOpen] = React.useState(false);
   const [access, setAccess] = React.useState<{ user: string; access: AccessResult } | null>(null);
+  const [editing, setEditing] = React.useState<UserRow | null>(null);
 
   const users = data?.items ?? [];
 
@@ -93,6 +95,7 @@ export function UsersScreen({
             timezone={timezone}
             currentUserId={currentUserId}
             onAccessIssued={setAccess}
+            onEdit={setEditing}
           />
         )}
       </Card>
@@ -107,6 +110,12 @@ export function UsersScreen({
       />
 
       <AccessDialog value={access} onClose={() => setAccess(null)} />
+
+      <EditUserDialog
+        user={editing}
+        isSelf={editing?.id === currentUserId}
+        onClose={() => setEditing(null)}
+      />
     </div>
   );
 }
@@ -116,11 +125,13 @@ function UsersTable({
   timezone,
   currentUserId,
   onAccessIssued,
+  onEdit,
 }: {
   users: UserRow[];
   timezone: string;
   currentUserId: string;
   onAccessIssued: (value: { user: string; access: AccessResult }) => void;
+  onEdit: (user: UserRow) => void;
 }) {
   const queryClient = useQueryClient();
 
@@ -148,6 +159,10 @@ function UsersTable({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent>
+        <DropdownMenuItem onSelect={() => onEdit(user)}>
+          <Pencil aria-hidden />
+          {ru.common.edit}
+        </DropdownMenuItem>
         <DropdownMenuItem
           onSelect={() =>
             issueAccess.mutate(
@@ -230,6 +245,11 @@ function UsersTable({
                 </td>
                 <td className="numeric hidden px-3 py-2.5 text-[var(--text-secondary)] lg:table-cell">
                   {user.extension ?? '—'}
+                  {user.personalNumber ? (
+                    <span className="text-2xs block text-[var(--text-muted)]">
+                      {formatPhone(user.personalNumber)}
+                    </span>
+                  ) : null}
                 </td>
                 <td className="px-3 py-2.5">
                   <Badge tone={user.isActive ? 'success' : 'outline'}>
@@ -285,6 +305,7 @@ const EMPTY_FORM = {
   email: '',
   phone: '',
   extension: '',
+  personalNumber: '',
   role: Role.MANAGER as Role,
   timezone: 'Europe/Moscow',
   accessMethod: 'invite' as 'invite' | 'password',
@@ -318,6 +339,7 @@ function CreateUserDialog({
           ...input,
           phone: input.phone || undefined,
           extension: input.extension || undefined,
+          personalNumber: input.personalNumber || undefined,
         }),
       }),
     onSuccess: (result) => {
@@ -402,6 +424,21 @@ function CreateUserDialog({
               </Field>
             </div>
 
+            <Field
+              label={ru.users.personalNumber}
+              htmlFor="user-personal"
+              hint={ru.users.personalNumberHint}
+              error={errors.personalNumber}
+            >
+              <Input
+                id="user-personal"
+                value={form.personalNumber}
+                onChange={(event) => set({ personalNumber: event.target.value })}
+                inputMode="tel"
+                placeholder="+7 495 123-45-67"
+              />
+            </Field>
+
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label={ru.users.role} htmlFor="user-role">
                 <Select value={form.role} onValueChange={(value) => set({ role: value as Role })}>
@@ -454,6 +491,169 @@ function CreateUserDialog({
             </Button>
             <Button type="submit" variant="primary" loading={create.isPending}>
               {ru.common.create}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/**
+ * Правка сотрудника: добавочный и личный номер нужны, чтобы АТС и CRM
+ * узнавали его звонки. Пустое поле — очистить значение.
+ */
+function EditUserDialog({
+  user,
+  isSelf,
+  onClose,
+}: {
+  user: UserRow | null;
+  isSelf: boolean;
+  onClose: () => void;
+}) {
+  const queryClient = useQueryClient();
+  const [form, setForm] = React.useState({
+    name: '',
+    extension: '',
+    personalNumber: '',
+    role: Role.MANAGER as Role,
+    timezone: 'Europe/Moscow',
+  });
+  const [errors, setErrors] = React.useState<Record<string, string>>({});
+
+  React.useEffect(() => {
+    if (!user) return;
+    setForm({
+      name: user.name,
+      extension: user.extension ?? '',
+      personalNumber: user.personalNumber ?? '',
+      role: user.role,
+      timezone: user.timezone,
+    });
+    setErrors({});
+  }, [user]);
+
+  const save = useMutation({
+    mutationFn: () =>
+      apiFetch(`/api/users/${user?.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          name: form.name,
+          extension: form.extension.trim() || null,
+          personalNumber: form.personalNumber.trim() || null,
+          timezone: form.timezone,
+          ...(isSelf ? {} : { role: form.role }),
+        }),
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['users'] });
+      toast.success(ru.common.saved);
+      onClose();
+    },
+    onError: (error) => {
+      if (error instanceof ApiRequestError) {
+        setErrors(error.fields ?? {});
+        if (!error.fields) toast.error(error.message);
+      } else {
+        toast.error(ru.errors.saveFailed);
+      }
+    },
+  });
+
+  const set = (patch: Partial<typeof form>) => setForm((prev) => ({ ...prev, ...patch }));
+
+  return (
+    <Dialog open={Boolean(user)} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{user?.name}</DialogTitle>
+          <DialogDescription>{user?.email}</DialogDescription>
+        </DialogHeader>
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            setErrors({});
+            save.mutate();
+          }}
+        >
+          <DialogBody className="flex flex-col gap-3">
+            <Field label={ru.users.fullName} htmlFor="edit-name" required error={errors.name}>
+              <Input
+                id="edit-name"
+                value={form.name}
+                onChange={(event) => set({ name: event.target.value })}
+                required
+              />
+            </Field>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field
+                label={ru.users.extension}
+                htmlFor="edit-extension"
+                hint={ru.users.extensionHint}
+                error={errors.extension}
+              >
+                <Input
+                  id="edit-extension"
+                  value={form.extension}
+                  onChange={(event) => set({ extension: event.target.value })}
+                  inputMode="numeric"
+                  placeholder="201"
+                />
+              </Field>
+              <Field
+                label={ru.users.personalNumber}
+                htmlFor="edit-personal"
+                hint={ru.users.personalNumberHint}
+                error={errors.personalNumber}
+              >
+                <Input
+                  id="edit-personal"
+                  value={form.personalNumber}
+                  onChange={(event) => set({ personalNumber: event.target.value })}
+                  inputMode="tel"
+                  placeholder="+7 495 123-45-67"
+                />
+              </Field>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label={ru.users.role} htmlFor="edit-role">
+                <Select
+                  value={form.role}
+                  onValueChange={(value) => set({ role: value as Role })}
+                  disabled={isSelf}
+                >
+                  <SelectTrigger id="edit-role">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={Role.MANAGER}>{ru.roles.MANAGER}</SelectItem>
+                    <SelectItem value={Role.ADMIN}>{ru.roles.ADMIN}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field label={ru.users.timezone} htmlFor="edit-timezone">
+                <Select value={form.timezone} onValueChange={(value) => set({ timezone: value })}>
+                  <SelectTrigger id="edit-timezone">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ru.timezones.map((zone) => (
+                      <SelectItem key={zone.value} value={zone.value}>
+                        {zone.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+            </div>
+          </DialogBody>
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={onClose}>
+              {ru.common.cancel}
+            </Button>
+            <Button type="submit" variant="primary" loading={save.isPending}>
+              {ru.common.save}
             </Button>
           </DialogFooter>
         </form>

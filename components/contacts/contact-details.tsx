@@ -1,25 +1,44 @@
 'use client';
 
-import { ArrowLeft, Ban, Phone, ShieldCheck } from 'lucide-react';
+import type { Role } from '@prisma/client';
+import { ArrowLeft, Ban, ShieldCheck, UserCheck } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import * as React from 'react';
 import { toast } from 'sonner';
 
+import { CallButton } from '@/components/calls/call-button';
 import { CallStatusBadge, DirectionIcon, OutcomeBadge } from '@/components/calls/call-presentation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Field, Input, Textarea } from '@/components/ui/field';
 import { Avatar, EmptyState, Skeleton, Tabs, TabsList, TabsTrigger } from '@/components/ui/misc';
-import { useContact, useUpdateContact } from '@/lib/client/hooks';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { useContact, useTaskAssignees, useUpdateContact } from '@/lib/client/hooks';
 import { ru } from '@/lib/i18n/ru';
-import { formatPhone, telHref } from '@/lib/phone';
+import { formatPhone } from '@/lib/phone';
 import { formatInZone } from '@/lib/time';
 import { formatDuration, pluralWithCount } from '@/lib/utils';
 
 /** Карточка контакта = вся история общения (ТЗ 5.5). */
-export function ContactDetails({ contactId, timezone }: { contactId: string; timezone: string }) {
+export function ContactDetails({
+  contactId,
+  timezone,
+  userId,
+  role,
+}: {
+  contactId: string;
+  timezone: string;
+  userId: string;
+  role: Role;
+}) {
   const router = useRouter();
   const { data, isLoading, isError } = useContact(contactId);
   const update = useUpdateContact(contactId);
@@ -117,12 +136,7 @@ export function ContactDetails({ contactId, timezone }: { contactId: string; tim
             {ru.contacts.blocked}
           </Badge>
         ) : null}
-        <Button variant="primary" size="sm" asChild>
-          <a href={telHref(contact.phoneE164)} aria-label={ru.calls.call}>
-            <Phone aria-hidden />
-            <span className="max-sm:hidden">{ru.calls.call}</span>
-          </a>
-        </Button>
+        <CallButton phone={contact.phoneE164} iconOnly={false} variant="primary" />
       </div>
 
       <Tabs value={mobileSection} onValueChange={setMobileSection} className="lg:hidden">
@@ -141,6 +155,23 @@ export function ContactDetails({ contactId, timezone }: { contactId: string; tim
             <CardTitle>{ru.contacts.title}</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
+            <OwnerField
+              ownerId={contact.ownerId}
+              ownerName={contact.owner?.name ?? null}
+              userId={userId}
+              canAssign={role === 'ADMIN' || role === 'SUPERVISOR'}
+              saving={update.isPending}
+              onChange={(ownerId) =>
+                update.mutate(
+                  { ownerId },
+                  {
+                    onSuccess: () => toast.success(ru.contacts.ownerChanged),
+                    onError: (error) =>
+                      toast.error(error instanceof Error ? error.message : ru.errors.saveFailed),
+                  },
+                )
+              }
+            />
             <Field label={ru.contacts.name} htmlFor="contact-name">
               <Input
                 id="contact-name"
@@ -239,6 +270,79 @@ export function ContactDetails({ contactId, timezone }: { contactId: string; tim
           </CardContent>
         </Card>
       </div>
+    </div>
+  );
+}
+
+const NO_OWNER = '__none__';
+
+/**
+ * Ответственный за клиента. Админ назначает любого, менеджер может взять
+ * себе только свободного клиента — чужих не перехватывает.
+ */
+function OwnerField({
+  ownerId,
+  ownerName,
+  userId,
+  canAssign,
+  saving,
+  onChange,
+}: {
+  ownerId: string | null;
+  ownerName: string | null;
+  userId: string;
+  canAssign: boolean;
+  saving: boolean;
+  onChange: (ownerId: string | null) => void;
+}) {
+  const assignees = useTaskAssignees(canAssign);
+
+  if (canAssign) {
+    return (
+      <Field label={ru.contacts.owner} htmlFor="contact-owner" hint={ru.contacts.ownerHint}>
+        <Select
+          value={ownerId ?? NO_OWNER}
+          onValueChange={(value) => onChange(value === NO_OWNER ? null : value)}
+          disabled={saving}
+        >
+          <SelectTrigger id="contact-owner">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={NO_OWNER}>{ru.contacts.ownerNone}</SelectItem>
+            {(assignees.data?.items ?? []).map((person) => (
+              <SelectItem key={person.id} value={person.id}>
+                {person.name}
+                {person.extension ? ` · доб. ${person.extension}` : ''}
+              </SelectItem>
+            ))}
+            {/* Заблокированный ответственный не попадает в список, но должен отображаться */}
+            {ownerId && !assignees.data?.items.some((p) => p.id === ownerId) ? (
+              <SelectItem value={ownerId}>{ownerName ?? ownerId}</SelectItem>
+            ) : null}
+          </SelectContent>
+        </Select>
+      </Field>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <span className="text-xs font-medium text-[var(--text-secondary)]">{ru.contacts.owner}</span>
+      <div className="flex items-center justify-between gap-2 rounded-md bg-[var(--surface-2)] px-3 py-2">
+        <span className="flex items-center gap-2 text-sm text-[var(--foreground)]">
+          <UserCheck className="size-4 text-[var(--text-muted)]" aria-hidden />
+          {ownerName ?? ru.contacts.ownerNone}
+        </span>
+        {!ownerId ? (
+          <Button variant="secondary" size="sm" loading={saving} onClick={() => onChange(userId)}>
+            {ru.contacts.takeOwnership}
+          </Button>
+        ) : null}
+      </div>
+      <p className="text-2xs text-[var(--text-muted)]">
+        {ownerId ? ru.contacts.ownerHint : ru.contacts.ownerAuto}
+      </p>
     </div>
   );
 }

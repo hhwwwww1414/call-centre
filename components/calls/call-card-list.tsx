@@ -6,7 +6,9 @@ import {
   CallStatusBadge,
   DirectionIcon,
   externalNumber,
+  ImportantStar,
   OutcomeBadge,
+  ResultBadge,
 } from '@/components/calls/call-presentation';
 import { useRealtime } from '@/components/providers/realtime-provider';
 import type { CallItem } from '@/lib/client/types';
@@ -57,14 +59,17 @@ export function CallCardList({
                     className="mt-0.5 shrink-0"
                   />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-[var(--foreground)]">{title}</p>
+                    <p className="flex items-center gap-1 truncate text-sm font-medium text-[var(--foreground)]">
+                      {call.isImportant ? <ImportantStar /> : null}
+                      {title}
+                    </p>
                     {call.contact?.name ? (
-                      <p className="numeric truncate text-2xs text-[var(--text-muted)]">
+                      <p className="numeric text-2xs truncate text-[var(--text-muted)]">
                         {formatPhone(number)}
                       </p>
                     ) : null}
                   </div>
-                  <span className="numeric shrink-0 text-2xs text-[var(--text-muted)]">
+                  <span className="numeric text-2xs shrink-0 text-[var(--text-muted)]">
                     {formatInZone(call.startedAt, timezone, 'short')}
                   </span>
                 </div>
@@ -76,9 +81,13 @@ export function CallCardList({
                       {formatDuration(call.durationSeconds)}
                     </span>
                   ) : null}
+                  <ResultBadge result={call.result} />
                   {call.outcome !== 'NEW' ? <OutcomeBadge outcome={call.outcome} /> : null}
                   {call.recordingReady ? (
-                    <Play className="size-3 text-[var(--text-muted)]" aria-label={ru.calls.columnRecording} />
+                    <Play
+                      className="size-3 text-[var(--text-muted)]"
+                      aria-label={ru.calls.columnRecording}
+                    />
                   ) : null}
                   {call.comment ? (
                     <MessageSquareText

@@ -1,5 +1,6 @@
 'use client';
 
+import type { Role } from '@prisma/client';
 import { Ban, Users } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import * as React from 'react';
@@ -10,26 +11,39 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/field';
 import { Avatar, EmptyState, Switch, TableSkeleton } from '@/components/ui/misc';
-import { useContacts, useDebounced } from '@/lib/client/hooks';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { useContacts, useDebounced, useTaskAssignees } from '@/lib/client/hooks';
 import type { ContactRow } from '@/lib/client/types';
 import { ru } from '@/lib/i18n/ru';
 import { formatPhone } from '@/lib/phone';
 import { formatInZone } from '@/lib/time';
 import { pluralWithCount } from '@/lib/utils';
 
-export function ContactsScreen({ timezone }: { timezone: string }) {
+const ALL_OWNERS = '__all__';
+
+export function ContactsScreen({ timezone, role }: { timezone: string; role: Role }) {
+  const canAssign = role === 'ADMIN' || role === 'SUPERVISOR';
   const router = useRouter();
   const [search, setSearch] = React.useState('');
   const [onlyBlocked, setOnlyBlocked] = React.useState(false);
+  const [owner, setOwner] = React.useState(ALL_OWNERS);
   const debounced = useDebounced(search);
+  const assignees = useTaskAssignees(canAssign);
 
   const params = React.useMemo(
     () => ({
       search: debounced.trim() || undefined,
       onlyBlocked: onlyBlocked || undefined,
+      owner: owner === ALL_OWNERS ? undefined : owner,
       limit: 50,
     }),
-    [debounced, onlyBlocked],
+    [debounced, onlyBlocked, owner],
   );
 
   const { data, isLoading, isError, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } =
@@ -48,6 +62,23 @@ export function ContactsScreen({ timezone }: { timezone: string }) {
           inputMode="search"
           className="max-w-xs flex-1"
         />
+        <Select value={owner} onValueChange={setOwner}>
+          <SelectTrigger className="w-full sm:w-56" aria-label={ru.contacts.filterOwner}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL_OWNERS}>{ru.contacts.ownerAll}</SelectItem>
+            <SelectItem value="me">{ru.contacts.ownerMine}</SelectItem>
+            <SelectItem value="none">{ru.contacts.ownerNobody}</SelectItem>
+            {canAssign
+              ? (assignees.data?.items ?? []).map((person) => (
+                  <SelectItem key={person.id} value={person.id}>
+                    {person.name}
+                  </SelectItem>
+                ))
+              : null}
+          </SelectContent>
+        </Select>
         <label className="flex min-h-11 items-center gap-2 text-xs text-[var(--text-secondary)] md:min-h-0">
           <Switch
             checked={onlyBlocked}
@@ -91,6 +122,9 @@ export function ContactsScreen({ timezone }: { timezone: string }) {
                     </th>
                     <th scope="col" className="hidden px-3 py-2.5 font-medium lg:table-cell">
                       {ru.contacts.columnCompany}
+                    </th>
+                    <th scope="col" className="px-3 py-2.5 font-medium">
+                      {ru.contacts.columnOwner}
                     </th>
                     <th scope="col" className="hidden px-3 py-2.5 font-medium xl:table-cell">
                       {ru.contacts.columnNote}
@@ -137,6 +171,11 @@ export function ContactsScreen({ timezone }: { timezone: string }) {
                       </td>
                       <td className="hidden max-w-40 truncate px-3 py-2.5 text-[var(--text-secondary)] lg:table-cell">
                         {contact.company ?? '—'}
+                      </td>
+                      <td className="max-w-40 truncate px-3 py-2.5 text-[var(--text-secondary)]">
+                        {contact.owner?.name ?? (
+                          <span className="text-[var(--text-muted)]">{ru.contacts.ownerNone}</span>
+                        )}
                       </td>
                       <td className="hidden max-w-64 truncate px-3 py-2.5 text-[var(--text-muted)] xl:table-cell">
                         {contact.note ?? '—'}

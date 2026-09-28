@@ -7,6 +7,9 @@ import {
   PhoneMissed,
   PhoneOff,
   PhoneOutgoing,
+  Star,
+  ThumbsDown,
+  ThumbsUp,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -76,7 +79,11 @@ export function DirectionIcon({
   className?: string;
 }) {
   const missed = status === CallStatus.MISSED;
-  const Icon = missed ? PhoneMissed : direction === CallDirection.INBOUND ? PhoneIncoming : PhoneOutgoing;
+  const Icon = missed
+    ? PhoneMissed
+    : direction === CallDirection.INBOUND
+      ? PhoneIncoming
+      : PhoneOutgoing;
   return (
     <Icon
       className={cn('size-4', className)}
@@ -101,6 +108,36 @@ export function OutcomeBadge({ outcome, className }: { outcome: CallOutcome; cla
     <Badge tone={OUTCOME_TONE[outcome]} className={className}>
       {ru.callOutcome[outcome]}
     </Badge>
+  );
+}
+
+/** Итог, который поставил менеджер во всплывающем окне. */
+export function ResultBadge({
+  result,
+  className,
+}: {
+  result: 'SUCCESS' | 'FAILURE' | null;
+  className?: string;
+}) {
+  if (!result) return null;
+  const Icon = result === 'SUCCESS' ? ThumbsUp : ThumbsDown;
+  return (
+    <Badge tone={result === 'SUCCESS' ? 'success' : 'danger'} className={className}>
+      <Icon className="size-3" aria-hidden />
+      {ru.callResult[result]}
+    </Badge>
+  );
+}
+
+export function ImportantStar({ className }: { className?: string }) {
+  return (
+    <Star
+      className={cn(
+        'size-3.5 shrink-0 fill-current text-[var(--price-margin-badge-text)]',
+        className,
+      )}
+      aria-label={ru.calls.important}
+    />
   );
 }
 

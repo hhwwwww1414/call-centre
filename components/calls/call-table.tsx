@@ -7,7 +7,9 @@ import {
   CallStatusBadge,
   DirectionIcon,
   externalNumber,
+  ImportantStar,
   OutcomeBadge,
+  ResultBadge,
 } from '@/components/calls/call-presentation';
 import { useRealtime } from '@/components/providers/realtime-provider';
 import type { CallItem } from '@/lib/client/types';
@@ -98,7 +100,8 @@ export function CallTable({ calls, timezone, showManager, selectedId, onSelect }
 
                 <td className="max-w-64 px-3 py-2.5">
                   <div className="flex flex-col">
-                    <span className="numeric truncate font-medium text-[var(--foreground)]">
+                    <span className="numeric flex items-center gap-1 truncate font-medium text-[var(--foreground)]">
+                      {call.isImportant ? <ImportantStar /> : null}
                       {formatPhone(number)}
                     </span>
                     {call.contact?.name || call.contact?.company ? (
@@ -132,7 +135,12 @@ export function CallTable({ calls, timezone, showManager, selectedId, onSelect }
                 </td>
 
                 <td className="px-3 py-2.5">
-                  <OutcomeBadge outcome={call.outcome} />
+                  <div className="flex flex-wrap items-center gap-1">
+                    <ResultBadge result={call.result} />
+                    {call.outcome !== 'NEW' || !call.result ? (
+                      <OutcomeBadge outcome={call.outcome} />
+                    ) : null}
+                  </div>
                 </td>
 
                 <td className="px-3 py-2.5">

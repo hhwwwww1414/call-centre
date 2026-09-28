@@ -15,6 +15,9 @@ import type {
   AuditResponse,
   CallDetailsResponse,
   CallListResponse,
+  PendingResultsResponse,
+  TaskItem,
+  TaskListResponse,
   ContactDetailsResponse,
   ContactListResponse,
   StatsResponse,
@@ -45,12 +48,114 @@ export function useCall(id: string | null) {
 export function useUpdateCall(id: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input: { outcome?: string; comment?: string | null; tags?: string[] }) =>
-      apiFetch(`/api/calls/${id}`, { method: 'PATCH', body: JSON.stringify(input) }),
+    mutationFn: (input: {
+      outcome?: string;
+      comment?: string | null;
+      tags?: string[];
+      result?: 'SUCCESS' | 'FAILURE' | null;
+      summary?: string | null;
+      isImportant?: boolean;
+    }) => apiFetch(`/api/calls/${id}`, { method: 'PATCH', body: JSON.stringify(input) }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['calls'] });
       void queryClient.invalidateQueries({ queryKey: ['stats'] });
     },
+  });
+}
+
+/** Звонки без итога — ключ под ['calls'], чтобы realtime обновлял и его. */
+export function usePendingResults() {
+  return useQuery({
+    queryKey: ['calls', 'pending'],
+    queryFn: () => apiFetch<PendingResultsResponse>('/api/calls/pending'),
+    refetchOnWindowFocus: true,
+  });
+}
+
+export type CallResultInput = {
+  result: 'SUCCESS' | 'FAILURE';
+  outcome?: string;
+  summary?: string;
+  isImportant: boolean;
+};
+
+export function useSubmitCallResult() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...input }: CallResultInput & { id: string }) =>
+      apiFetch(`/api/calls/${id}/result`, { method: 'POST', body: JSON.stringify(input) }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['calls'] });
+      void queryClient.invalidateQueries({ queryKey: ['stats'] });
+      void queryClient.invalidateQueries({ queryKey: ['tasks'] });
+    },
+  });
+}
+
+/** Звонок через АТС: сначала звонит SIP-телефон менеджера, затем клиент. */
+export function useOriginateCall() {
+  return useMutation({
+    mutationFn: (phone: string) =>
+      apiFetch<{ ok: boolean; externalId: string }>('/api/calls/originate', {
+        method: 'POST',
+        body: JSON.stringify({ phone }),
+      }),
+  });
+}
+
+export function useTasks(params: { status: string; userId?: string | undefined }) {
+  return useQuery({
+    queryKey: ['tasks', params],
+    queryFn: () => apiFetch<TaskListResponse>(`/api/tasks${buildQuery(params)}`),
+  });
+}
+
+export type TaskAssignee = { id: string; name: string; extension: string | null; role: string };
+
+export function useTaskAssignees(enabled: boolean) {
+  return useQuery({
+    queryKey: ['tasks', 'assignees'],
+    queryFn: () => apiFetch<{ items: TaskAssignee[] }>('/api/tasks/assignees'),
+    enabled,
+    staleTime: 60_000,
+  });
+}
+
+export type TaskCreatePayload = {
+  title: string;
+  description?: string;
+  metric: string;
+  target: number;
+  assigneeIds: string[];
+  dueAt?: string;
+};
+
+export function useCreateTask() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: TaskCreatePayload) =>
+      apiFetch<{ ok: boolean; created: number }>('/api/tasks', {
+        method: 'POST',
+        body: JSON.stringify(input),
+      }),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['tasks'] }),
+  });
+}
+
+export function useUpdateTask() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...input }: { id: string } & Record<string, unknown>) =>
+      apiFetch<TaskItem>(`/api/tasks/${id}`, { method: 'PATCH', body: JSON.stringify(input) }),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['tasks'] }),
+  });
+}
+
+export function useDeleteTask() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => apiFetch(`/api/tasks/${id}`, { method: 'DELETE' }),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['tasks'] }),
   });
 }
 

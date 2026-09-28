@@ -4,12 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { logger } from '@/lib/logger';
 import { toE164 } from '@/lib/phone';
 import { ingestCallEvent } from '@/lib/telephony/ingest';
-import {
-  chance,
-  MOCK_RECORDING_URL,
-  randomInt,
-  randomPhoneE164,
-} from '@/lib/telephony/mock-data';
+import { chance, MOCK_RECORDING_URL, randomInt, randomPhoneE164 } from '@/lib/telephony/mock-data';
 import type { NormalizedCallEvent, TelephonyProvider } from '@/lib/telephony/types';
 
 /**
@@ -48,9 +43,12 @@ export class MockTelephonyProvider implements TelephonyProvider {
     if (!rawBody || typeof rawBody !== 'object') return null;
     const body = rawBody as Partial<NormalizedCallEvent>;
     if (!body.externalId || !body.direction || !body.status) return null;
+    // Из JSON даты приходят строками — приводим все, а не только начало
     return {
       ...(body as NormalizedCallEvent),
       startedAt: new Date(body.startedAt ?? Date.now()),
+      ...(body.answeredAt ? { answeredAt: new Date(body.answeredAt) } : {}),
+      ...(body.endedAt ? { endedAt: new Date(body.endedAt) } : {}),
       raw: rawBody,
     };
   }
@@ -78,7 +76,8 @@ export class MockTelephonyProvider implements TelephonyProvider {
     speed?: number;
   }): Promise<{ externalId: string; startedAt: Date }> {
     const externalId = params.externalId ?? `mock-${randomUUID()}`;
-    const direction = params.direction ?? (chance(0.65) ? CallDirection.INBOUND : CallDirection.OUTBOUND);
+    const direction =
+      params.direction ?? (chance(0.65) ? CallDirection.INBOUND : CallDirection.OUTBOUND);
     const externalNumber = params.externalNumber ?? randomPhoneE164();
     const ourNumber = params.ourNumber ?? process.env.EXOLVE_NUMBER ?? '+74951234567';
     const speed = params.speed && params.speed > 0 ? params.speed : 1;
@@ -99,7 +98,12 @@ export class MockTelephonyProvider implements TelephonyProvider {
 
     // 1. Дозвон — виден в журнале сразу
     await ingestCallEvent(
-      { ...base, type: 'ringing', status: CallStatus.RINGING, raw: { scenario: 'mock', step: 'ringing' } },
+      {
+        ...base,
+        type: 'ringing',
+        status: CallStatus.RINGING,
+        raw: { scenario: 'mock', step: 'ringing' },
+      },
       this.name,
     );
 
@@ -108,9 +112,12 @@ export class MockTelephonyProvider implements TelephonyProvider {
     const talkSeconds = randomInt(20, 75);
 
     const schedule = (fn: () => Promise<void>, delaySeconds: number) => {
-      const timer = setTimeout(() => {
-        void fn().catch((err) => logger.error({ err, externalId }, 'mock scenario step failed'));
-      }, (delaySeconds * 1000) / speed);
+      const timer = setTimeout(
+        () => {
+          void fn().catch((err) => logger.error({ err, externalId }, 'mock scenario step failed'));
+        },
+        (delaySeconds * 1000) / speed,
+      );
       // Не держим процесс живым ради демо-таймера
       if (typeof timer.unref === 'function') timer.unref();
     };

@@ -42,7 +42,8 @@ export function CallsScreen({ role, timezone, initialCallId = null }: Props) {
   // Поиск из глобальной строки в шапке приходит query-параметром
   React.useEffect(() => {
     const search = searchParams.get('search');
-    if (search !== null) setFilters((prev) => (prev.search === search ? prev : { ...prev, search }));
+    if (search !== null)
+      setFilters((prev) => (prev.search === search ? prev : { ...prev, search }));
   }, [searchParams]);
 
   const debouncedSearch = useDebounced(filters.search);
@@ -59,6 +60,7 @@ export function CallsScreen({ role, timezone, initialCallId = null }: Props) {
       search: debouncedSearch.trim() || undefined,
       hasRecording: filters.hasRecording || undefined,
       hasComment: filters.hasComment || undefined,
+      important: filters.important || undefined,
       limit: 50,
     }),
     [filters, debouncedSearch],
@@ -92,7 +94,8 @@ export function CallsScreen({ role, timezone, initialCallId = null }: Props) {
     filters.search.trim() !== '' ||
     Boolean(filters.direction || filters.status || filters.outcome || filters.userId) ||
     filters.hasRecording ||
-    filters.hasComment;
+    filters.hasComment ||
+    filters.important;
 
   return (
     <div className="flex flex-col gap-4">

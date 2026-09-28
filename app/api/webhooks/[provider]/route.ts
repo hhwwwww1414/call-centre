@@ -2,7 +2,12 @@ import { NextResponse } from 'next/server';
 
 import { clientIp } from '@/lib/api';
 import { logger } from '@/lib/logger';
-import { getProviderName, getTelephonyProvider, type ProviderName } from '@/lib/telephony';
+import {
+  getProviderName,
+  getTelephonyProvider,
+  PROVIDER_NAMES,
+  type ProviderName,
+} from '@/lib/telephony';
 import { ingestCallEvent } from '@/lib/telephony/ingest';
 
 export const runtime = 'nodejs';
@@ -15,33 +20,55 @@ type Params = { params: Promise<{ provider: string }> };
  *
  * Отвечаем 200 быстро: провайдеры считают медленный ответ отказом и
  * начинают ретраить. Всё тяжёлое — после отправки ответа.
+ *
+ * В каждом ответе есть success: Sipuni требует {"success": true} и при
+ * некорректных ответах приостанавливает отправку событий.
  */
 export async function POST(request: Request, { params }: Params) {
+  return handle(request, params);
+}
+
+/** Sipuni умеет слать события и GET-запросом — параметры тогда в query. */
+export async function GET(request: Request, { params }: Params) {
+  const { provider } = await params;
+  const url = new URL(request.url);
+  if (!url.searchParams.has('event')) {
+    return NextResponse.json({
+      success: true,
+      provider,
+      active: getProviderName(),
+      message: 'Эндпоинт вебхука принимает события POST или GET',
+    });
+  }
+  return handle(request, params);
+}
+
+async function handle(request: Request, params: Params['params']) {
   const { provider: providerParam } = await params;
   const requested = providerParam.toLowerCase() as ProviderName;
   const active = getProviderName();
   const ip = clientIp(request.headers);
 
-  if (requested !== 'mock' && requested !== 'exolve') {
-    return NextResponse.json({ error: 'unknown_provider' }, { status: 404 });
+  if (!PROVIDER_NAMES.includes(requested)) {
+    return reply({ error: 'unknown_provider' }, 404);
   }
 
   // Фича-флаг: пока провайдер не включён, вебхук честно закрыт (ТЗ 0.2)
   if (requested !== active) {
     logger.warn({ requested, active, ip }, 'webhook: провайдер выключен');
-    return NextResponse.json(
+    return reply(
       {
         error: 'provider_disabled',
         message: `Провайдер «${requested}» выключен. Сейчас активен «${active}»`,
       },
-      { status: 503 },
+      503,
     );
   }
 
-  const rawBody = await request.text();
+  const rawBody = request.method === 'POST' ? await request.text() : '';
 
-  // Сырое тело — в лог, как требует ТЗ. Секретов в нём нет: подпись
-  // приходит заголовком, а заголовки в лог не пишем
+  // Сырое тело — в лог, как требует ТЗ. Токен вебхука живёт в query,
+  // поэтому URL целиком в лог не пишем
   logger.info({ provider: requested, ip, bodyLength: rawBody.length, rawBody }, 'webhook received');
 
   const telephony = getTelephonyProvider(active);
@@ -51,41 +78,69 @@ export async function POST(request: Request, { params }: Params) {
     headers[key.toLowerCase()] = value;
   });
 
-  if (!telephony.verifyWebhook({ rawBody, headers })) {
+  if (!telephony.verifyWebhook({ rawBody, headers, url: request.url })) {
     logger.warn({ provider: requested, ip }, 'webhook: подпись не сошлась');
-    return NextResponse.json({ error: 'invalid_signature' }, { status: 401 });
+    return reply({ error: 'invalid_signature' }, 401);
   }
 
-  let parsedBody: unknown;
-  try {
-    parsedBody = rawBody ? JSON.parse(rawBody) : {};
-  } catch {
-    return NextResponse.json({ error: 'invalid_json' }, { status: 400 });
+  const parsedBody = parseBody(rawBody, headers['content-type'] ?? '', request.url);
+  if (parsedBody === null) {
+    return reply({ error: 'invalid_body' }, 400);
   }
 
   const event = telephony.parseEvent(parsedBody);
   if (!event) {
     // Неизвестное событие — не ошибка провайдера: подтверждаем приём,
     // иначе он будет ретраить его бесконечно
-    logger.warn({ provider: requested }, 'webhook: событие не разобрано, пропускаем');
-    return NextResponse.json({ ok: true, ignored: true });
+    logger.info({ provider: requested }, 'webhook: событие пропущено');
+    return reply({ ignored: true });
   }
 
   try {
     const call = await ingestCallEvent(event, active);
-    return NextResponse.json({ ok: true, callId: call.id });
+    return reply({ callId: call.id });
   } catch (err) {
     logger.error({ err, externalId: event.externalId }, 'webhook: не удалось записать звонок');
     // 500 — чтобы провайдер повторил доставку: терять звонок нельзя
-    return NextResponse.json({ error: 'ingest_failed' }, { status: 500 });
+    return reply({ error: 'ingest_failed' }, 500);
   }
 }
 
-export async function GET(_request: Request, { params }: Params) {
-  const { provider } = await params;
-  return NextResponse.json({
-    provider,
-    active: getProviderName(),
-    message: 'Эндпоинт вебхука принимает POST',
-  });
+function reply(body: Record<string, unknown>, status = 200) {
+  const ok = status < 300;
+  return NextResponse.json({ success: ok, ok, ...body }, { status });
+}
+
+/**
+ * Тело события в любом из форматов провайдеров: JSON, форма или query.
+ * Параметры query подмешиваются снизу — служебный token их не перебивает,
+ * а тело имеет приоритет.
+ */
+function parseBody(
+  rawBody: string,
+  contentType: string,
+  url: string,
+): Record<string, unknown> | null {
+  const fromQuery: Record<string, string> = {};
+  for (const [key, value] of new URL(url).searchParams.entries()) {
+    if (key !== 'token') fromQuery[key] = value;
+  }
+
+  const trimmed = rawBody.trim();
+  if (!trimmed) return fromQuery;
+
+  if (contentType.includes('json') || trimmed.startsWith('{')) {
+    try {
+      const parsed: unknown = JSON.parse(trimmed);
+      return parsed && typeof parsed === 'object'
+        ? { ...fromQuery, ...(parsed as Record<string, unknown>) }
+        : null;
+    } catch {
+      return null;
+    }
+  }
+
+  const form: Record<string, string> = {};
+  for (const [key, value] of new URLSearchParams(trimmed).entries()) form[key] = value;
+  return { ...fromQuery, ...form };
 }

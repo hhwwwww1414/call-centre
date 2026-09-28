@@ -18,6 +18,13 @@ export type CallEvent = {
   at: string;
 };
 
+type TaskEvent = {
+  event: 'task.created' | 'task.updated' | 'task.deleted';
+  id: string;
+  userId: string | null;
+  status: string;
+};
+
 type RealtimeContextValue = {
   state: ConnectionState;
   /** id звонков, которые надо подсветить в журнале. */
@@ -35,9 +42,11 @@ const HIGHLIGHT_MS = 2200;
 
 export function RealtimeProvider({
   children,
+  userId,
   soundEnabled = false,
 }: {
   children: React.ReactNode;
+  userId: string;
   soundEnabled?: boolean;
 }) {
   const queryClient = useQueryClient();
@@ -55,6 +64,8 @@ export function RealtimeProvider({
     void queryClient.invalidateQueries({ queryKey: ['stats'] });
     void queryClient.invalidateQueries({ queryKey: ['analytics'] });
     void queryClient.invalidateQueries({ queryKey: ['contacts'] });
+    // Счётчики задач считаются по звонкам — каждый звонок может их сдвинуть
+    void queryClient.invalidateQueries({ queryKey: ['tasks'] });
   }, [queryClient]);
 
   React.useEffect(() => {
@@ -98,6 +109,23 @@ export function RealtimeProvider({
           }
         } catch {
           // Битое событие не должно ронять подписку — просто пропускаем
+        }
+      });
+
+      source.addEventListener('task', (event) => {
+        try {
+          const payload = JSON.parse((event as MessageEvent<string>).data) as TaskEvent;
+          void queryClient.invalidateQueries({ queryKey: ['tasks'] });
+
+          // Уведомляем только исполнителя: админу хватает обновлённых полосок
+          if (payload.userId !== userId) return;
+          if (payload.event === 'task.created') {
+            toast(ru.tasks.newTask, { description: ru.tasks.newTaskHint });
+          } else if (payload.event === 'task.updated' && payload.status === 'COMPLETED') {
+            toast.success(ru.tasks.completedToast, { description: ru.tasks.completedToastHint });
+          }
+        } catch {
+          // Битое событие не должно ронять подписку
         }
       });
 
@@ -146,7 +174,7 @@ export function RealtimeProvider({
       for (const timer of timers.values()) clearTimeout(timer);
       timers.clear();
     };
-  }, [invalidate, soundEnabled]);
+  }, [invalidate, soundEnabled, queryClient, userId]);
 
   const value = React.useMemo<RealtimeContextValue>(
     () => ({ state, highlighted, lastEvent }),

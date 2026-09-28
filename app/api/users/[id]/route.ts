@@ -33,7 +33,10 @@ export async function PATCH(request: Request, { params }: Params) {
     }
 
     // Нельзя случайно остаться без единственного администратора
-    if ((input.isActive === false || (input.role && input.role !== Role.ADMIN)) && target.role === Role.ADMIN) {
+    if (
+      (input.isActive === false || (input.role && input.role !== Role.ADMIN)) &&
+      target.role === Role.ADMIN
+    ) {
       const admins = await prisma.user.findMany({
         where: { deletedAt: null, role: Role.ADMIN },
         select: { id: true, role: true, isActive: true },
@@ -43,7 +46,11 @@ export async function PATCH(request: Request, { params }: Params) {
       }
     }
 
-    await assertUnique({ extension: input.extension ?? null, excludeUserId: id });
+    await assertUnique({
+      extension: input.extension ?? null,
+      personalNumber: input.personalNumber ?? null,
+      excludeUserId: id,
+    });
 
     const user = await prisma.user.update({
       where: { id },
@@ -51,6 +58,7 @@ export async function PATCH(request: Request, { params }: Params) {
         ...(input.name !== undefined ? { name: input.name } : {}),
         ...(input.phone !== undefined ? { phone: input.phone ?? null } : {}),
         ...(input.extension !== undefined ? { extension: input.extension } : {}),
+        ...(input.personalNumber !== undefined ? { personalNumber: input.personalNumber } : {}),
         ...(input.role !== undefined ? { role: input.role } : {}),
         ...(input.timezone !== undefined ? { timezone: input.timezone } : {}),
         ...(input.isActive !== undefined ? { isActive: input.isActive } : {}),

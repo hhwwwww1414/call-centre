@@ -9,5 +9,5 @@ export const dynamic = 'force-dynamic';
 
 export default async function ContactsPage() {
   const user = await requireUserPage();
-  return <ContactsScreen timezone={user.timezone} />;
+  return <ContactsScreen timezone={user.timezone} role={user.role} />;
 }

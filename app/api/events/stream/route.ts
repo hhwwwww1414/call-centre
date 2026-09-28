@@ -59,7 +59,8 @@ export async function GET(request: Request) {
 
       unsubscribe = callEventBus.subscribe((event: CallEvent) => {
         if (!seesEverything && event.userId !== userId) return;
-        send(`event: call\ndata: ${JSON.stringify(event)}\n\n`);
+        const channel = event.event.startsWith('task.') ? 'task' : 'call';
+        send(`event: ${channel}\ndata: ${JSON.stringify(event)}\n\n`);
       });
 
       heartbeat = setInterval(() => send(`: ping\n\n`), HEARTBEAT_MS);

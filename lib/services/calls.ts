@@ -24,6 +24,11 @@ export const CALL_LIST_SELECT = {
   recordingReady: true,
   comment: true,
   tags: true,
+  result: true,
+  summary: true,
+  isImportant: true,
+  resultRequired: true,
+  resultAt: true,
   contact: { select: { id: true, phoneE164: true, name: true, company: true, isBlocked: true } },
   user: { select: { id: true, name: true, extension: true } },
 } satisfies Prisma.CallSelect;
@@ -47,6 +52,9 @@ export function buildCallWhere(user: SessionUser, filters: CallFilters): Prisma.
   if (filters.outcome) where.outcome = filters.outcome;
   if (filters.hasRecording) where.recordingReady = true;
   if (filters.hasComment) where.comment = { not: null };
+  if (filters.important) where.isImportant = true;
+  if (filters.result === 'NONE') where.result = null;
+  else if (filters.result) where.result = filters.result;
 
   const search = filters.search?.trim();
   if (search) {
@@ -316,4 +324,22 @@ export async function getRecentCalls(user: SessionUser, limit = 5) {
     orderBy: { startedAt: 'desc' },
     take: limit,
   });
+}
+
+/**
+ * Звонки, которые менеджер ещё не разметил. Всегда только свои — даже
+ * админу окно итога показывает его собственные разговоры.
+ */
+export async function getPendingResults(user: SessionUser, limit = 20) {
+  const where = { userId: user.id, resultRequired: true, result: null };
+  const [items, total] = await Promise.all([
+    prisma.call.findMany({
+      where,
+      select: CALL_LIST_SELECT,
+      orderBy: { startedAt: 'desc' },
+      take: limit,
+    }),
+    prisma.call.count({ where }),
+  ]);
+  return { items, total };
 }

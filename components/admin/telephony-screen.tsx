@@ -1,7 +1,15 @@
 'use client';
 
 import { useMutation } from '@tanstack/react-query';
-import { AlertTriangle, Check, CheckCircle2, Copy, PhoneOutgoing, PlugZap, XCircle } from 'lucide-react';
+import {
+  AlertTriangle,
+  Check,
+  CheckCircle2,
+  Copy,
+  PhoneOutgoing,
+  PlugZap,
+  XCircle,
+} from 'lucide-react';
 import * as React from 'react';
 import { toast } from 'sonner';
 
@@ -9,7 +17,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/misc';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { apiFetch } from '@/lib/client/api';
 import { useCopy, useTelephonyStatus, useUsers } from '@/lib/client/hooks';
 import { ru } from '@/lib/i18n/ru';
@@ -25,7 +39,10 @@ export function TelephonyScreen({ timezone }: { timezone: string }) {
   const [health, setHealth] = React.useState<{ ok: boolean; message?: string } | null>(null);
 
   const checkConnection = useMutation({
-    mutationFn: () => apiFetch<{ ok: boolean; message?: string }>('/api/admin/telephony/health', { method: 'POST' }),
+    mutationFn: () =>
+      apiFetch<{ ok: boolean; message?: string }>('/api/admin/telephony/health', {
+        method: 'POST',
+      }),
     onSuccess: (result) => {
       setHealth(result);
       if (result.ok) toast.success(ru.telephony.statusOk, { description: result.message });
@@ -57,19 +74,32 @@ export function TelephonyScreen({ timezone }: { timezone: string }) {
   }
 
   const isMock = data.provider === 'mock';
+  const isSipuni = data.provider === 'sipuni';
   const notConfigured = !isMock && !data.configured;
+  const providerLabel = isMock
+    ? ru.telephony.providerMock
+    : isSipuni
+      ? ru.telephony.providerSipuni
+      : ru.telephony.providerExolve;
 
   return (
     <div className="flex flex-col gap-4">
       {notConfigured ? (
         <div className="flex items-start gap-3 rounded-lg border border-[var(--price-margin-badge-bg)] bg-[var(--price-margin-badge-bg)]/12 p-4">
-          <AlertTriangle className="mt-0.5 size-4 shrink-0 text-[var(--price-margin-badge-text)] dark:text-[var(--price-margin-badge-bg)]" aria-hidden />
+          <AlertTriangle
+            className="mt-0.5 size-4 shrink-0 text-[var(--price-margin-badge-text)] dark:text-[var(--price-margin-badge-bg)]"
+            aria-hidden
+          />
           <div>
             <p className="text-xs font-medium text-[var(--foreground)]">
-              {ru.telephony.exolveNotConfiguredTitle}
+              {isSipuni
+                ? ru.telephony.sipuniNotConfiguredTitle
+                : ru.telephony.exolveNotConfiguredTitle}
             </p>
-            <p className="mt-0.5 text-2xs text-[var(--text-secondary)]">
-              {ru.telephony.exolveNotConfiguredHint}
+            <p className="text-2xs mt-0.5 text-[var(--text-secondary)]">
+              {isSipuni
+                ? ru.telephony.sipuniNotConfiguredHint
+                : ru.telephony.exolveNotConfiguredHint}
             </p>
           </div>
         </div>
@@ -83,14 +113,14 @@ export function TelephonyScreen({ timezone }: { timezone: string }) {
           <CardContent className="flex flex-col gap-3">
             <div className="flex items-center gap-2">
               <Badge tone={isMock ? 'attention' : data.configured ? 'success' : 'danger'}>
-                {isMock ? ru.telephony.providerMock : ru.telephony.providerExolve}
+                {providerLabel}
               </Badge>
               <span className="text-2xs text-[var(--text-muted)]">
                 TELEPHONY_PROVIDER={data.provider}
               </span>
             </div>
 
-            <dl className="grid grid-cols-2 gap-2 text-2xs">
+            <dl className="text-2xs grid grid-cols-2 gap-2">
               <div>
                 <dt className="text-[var(--text-muted)]">{ru.telephony.connectionStatus}</dt>
                 <dd className="flex items-center gap-1 text-[var(--text-secondary)]">
@@ -129,7 +159,7 @@ export function TelephonyScreen({ timezone }: { timezone: string }) {
             </dl>
 
             {health?.message ? (
-              <p className="rounded-md bg-[var(--surface-2)] p-2.5 text-2xs text-[var(--text-secondary)]">
+              <p className="text-2xs rounded-md bg-[var(--surface-2)] p-2.5 text-[var(--text-secondary)]">
                 {health.message}
               </p>
             ) : null}
@@ -151,12 +181,14 @@ export function TelephonyScreen({ timezone }: { timezone: string }) {
           <CardHeader>
             <div>
               <CardTitle>{ru.telephony.webhookUrl}</CardTitle>
-              <p className="mt-0.5 text-2xs text-[var(--text-muted)]">{ru.telephony.webhookUrlHint}</p>
+              <p className="text-2xs mt-0.5 text-[var(--text-muted)]">
+                {ru.telephony.webhookUrlHint}
+              </p>
             </div>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
             <div className="flex items-center gap-2">
-              <code className="min-w-0 flex-1 select-all break-all rounded-md bg-[var(--surface-2)] px-3 py-2.5 text-2xs text-[var(--foreground)]">
+              <code className="text-2xs min-w-0 flex-1 rounded-md bg-[var(--surface-2)] px-3 py-2.5 break-all text-[var(--foreground)] select-all">
                 {data.webhookUrl}
               </code>
               <Button
@@ -169,17 +201,35 @@ export function TelephonyScreen({ timezone }: { timezone: string }) {
               </Button>
             </div>
 
+            {data.provider !== 'exolve' ? (
+              <div>
+                <p className="text-2xs mb-1.5 font-medium text-[var(--text-secondary)]">
+                  {ru.telephony.routingUrl}
+                </p>
+                <p className="text-2xs mb-2 text-[var(--text-muted)]">
+                  {ru.telephony.routingUrlHint}
+                </p>
+                <code className="text-2xs block rounded-md bg-[var(--surface-2)] px-3 py-2.5 break-all text-[var(--foreground)] select-all">
+                  {data.routingUrl}
+                </code>
+              </div>
+            ) : null}
+
             <div>
-              <p className="mb-1.5 text-2xs font-medium text-[var(--text-secondary)]">
+              <p className="text-2xs mb-1.5 font-medium text-[var(--text-secondary)]">
                 {ru.telephony.credentials}
               </p>
-              <p className="mb-2 text-2xs text-[var(--text-muted)]">{ru.telephony.credentialsHint}</p>
+              <p className="text-2xs mb-2 text-[var(--text-muted)]">
+                {ru.telephony.credentialsHint}
+              </p>
               <ul className="flex flex-col gap-1">
                 {Object.entries(data.credentials).map(([key, configured]) => (
-                  <li key={key} className="flex items-center justify-between gap-2 text-2xs">
+                  <li key={key} className="text-2xs flex items-center justify-between gap-2">
                     <code className="text-[var(--text-secondary)]">{key}</code>
                     <Badge tone={configured ? 'success' : 'outline'}>
-                      {configured ? ru.telephony.credentialConfigured : ru.telephony.credentialMissing}
+                      {configured
+                        ? ru.telephony.credentialConfigured
+                        : ru.telephony.credentialMissing}
                     </Badge>
                   </li>
                 ))}
@@ -188,6 +238,26 @@ export function TelephonyScreen({ timezone }: { timezone: string }) {
           </CardContent>
         </Card>
       </div>
+
+      {data.provider !== 'exolve' ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>{ru.telephony.sipuniSetup}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ol className="flex flex-col gap-2.5">
+              {ru.telephony.sipuniSetupSteps.map((step, index) => (
+                <li key={step} className="flex gap-3 text-xs text-[var(--text-secondary)]">
+                  <span className="numeric text-2xs flex size-5 shrink-0 items-center justify-center rounded-full bg-[var(--brand-soft)] font-semibold text-[var(--brand)] dark:text-[var(--brand-text)]">
+                    {index + 1}
+                  </span>
+                  <span className="pt-0.5">{step}</span>
+                </li>
+              ))}
+            </ol>
+          </CardContent>
+        </Card>
+      ) : null}
 
       <Card>
         <CardHeader>

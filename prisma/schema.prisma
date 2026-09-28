@@ -39,12 +39,34 @@ enum CallOutcome {
   SPAM
 }
 
+/// Итог звонка глазами менеджера — ставится во всплывающем окне после разговора.
+enum CallResult {
+  SUCCESS
+  FAILURE
+}
+
+enum TaskStatus {
+  ACTIVE
+  COMPLETED
+  CANCELED
+}
+
+/// Что считает прогресс задачи. Все метрики — по исходящим звонкам
+/// исполнителя, уникальным номерам, внутри окна задачи.
+enum TaskMetric {
+  CALLS // совершённые звонки (любой завершённый исходящий)
+  ANSWERED // дозвоны (был разговор)
+  SUCCESSFUL // звонки, отмеченные менеджером как успешные
+}
+
 model User {
   id                 String    @id @default(cuid())
   email              String    @unique
   name               String
   phone              String?
   extension          String?   @unique // внутренний номер в АТС
+  /// Личный внешний номер менеджера: входящий на него — звонок этого менеджера
+  personalNumber     String?   @unique
   passwordHash       String?
   role               Role      @default(MANAGER)
   isActive           Boolean   @default(true)
@@ -60,9 +82,13 @@ model User {
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
-  calls     Call[]
-  invites   Invite[]
-  auditLogs AuditLog[]
+  calls        Call[]
+  invites      Invite[]
+  auditLogs    AuditLog[]
+  tasks        Task[]     @relation("TaskAssignee")
+  createdTasks Task[]     @relation("TaskCreator")
+  resultCalls  Call[]     @relation("CallResultBy")
+  ownContacts  Contact[]  @relation("ContactOwner")
 
   @@index([role, isActive])
   @@index([deletedAt])
@@ -87,12 +113,16 @@ model Contact {
   company   String?
   note      String?
   isBlocked Boolean  @default(false)
+  /// Ответственный менеджер: на него АТС направляет звонки с общего номера
+  ownerId   String?
+  owner     User?    @relation("ContactOwner", fields: [ownerId], references: [id], onDelete: SetNull)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   calls Call[]
 
   @@index([name])
+  @@index([ownerId])
 }
 
 model Call {
@@ -126,6 +156,16 @@ model Call {
   comment String?
   tags    String[] @default([])
 
+  // Итог после звонка. resultRequired ставит бэкенд, когда звонок завершился
+  // и менеджер должен его разметить — по этому флагу всплывает окно
+  result         CallResult?
+  summary        String?
+  isImportant    Boolean     @default(false)
+  resultRequired Boolean     @default(false)
+  resultAt       DateTime?
+  resultById     String?
+  resultBy       User?       @relation("CallResultBy", fields: [resultById], references: [id])
+
   rawPayload Json? // сырой ответ провайдера, для отладки
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
@@ -136,6 +176,36 @@ model Call {
   @@index([direction, startedAt])
   @@index([outcome, startedAt])
   @@index([contactId, startedAt])
+  @@index([userId, resultRequired, result])
+  @@index([isImportant, startedAt])
+}
+
+/// Задача менеджеру: «обзвонить 30 человек». Прогресс не хранится, а
+/// считается по звонкам — счётчик не разъедется с журналом.
+model Task {
+  id          String     @id @default(cuid())
+  /// Задачи, выданные одним действием нескольким менеджерам, — одна группа
+  batchId     String
+  title       String
+  description String?
+  metric      TaskMetric @default(CALLS)
+  target      Int
+  status      TaskStatus @default(ACTIVE)
+
+  assigneeId  String
+  assignee    User    @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  createdById String?
+  createdBy   User?   @relation("TaskCreator", fields: [createdById], references: [id])
+
+  startsAt    DateTime  @default(now())
+  dueAt       DateTime?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([assigneeId, status])
+  @@index([batchId])
+  @@index([status, createdAt])
 }
 
 model CallTranscript {

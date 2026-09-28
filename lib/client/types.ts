@@ -1,4 +1,12 @@
-import type { CallDirection, CallOutcome, CallStatus, Role } from '@prisma/client';
+import type {
+  CallDirection,
+  CallOutcome,
+  CallResult,
+  CallStatus,
+  Role,
+  TaskMetric,
+  TaskStatus,
+} from '@prisma/client';
 
 /** Формы данных, которые API отдаёт клиенту. Даты приходят строками ISO. */
 
@@ -30,9 +38,46 @@ export type CallItem = {
   recordingReady: boolean;
   comment: string | null;
   tags: string[];
+  result: CallResult | null;
+  summary: string | null;
+  isImportant: boolean;
+  resultRequired: boolean;
+  resultAt: string | null;
   contact: CallContact | null;
   user: CallUser | null;
 };
+
+export type PendingResultsResponse = { items: CallItem[]; total: number };
+
+export type TaskItem = {
+  id: string;
+  batchId: string;
+  title: string;
+  description: string | null;
+  metric: TaskMetric;
+  target: number;
+  status: TaskStatus;
+  assigneeId: string;
+  startsAt: string;
+  dueAt: string | null;
+  completedAt: string | null;
+  createdAt: string;
+  assignee: { id: string; name: string; extension: string | null };
+  createdBy: { id: string; name: string } | null;
+  progress: number;
+  percent: number;
+  isOverdue: boolean;
+};
+
+export type TaskSummary = {
+  active: number;
+  completed: number;
+  overdue: number;
+  progress: number;
+  target: number;
+};
+
+export type TaskListResponse = { items: TaskItem[]; summary: TaskSummary };
 
 export type CallListResponse = {
   items: CallItem[];
@@ -116,6 +161,7 @@ export type ContactRow = {
   company: string | null;
   note: string | null;
   isBlocked: boolean;
+  owner: { id: string; name: string } | null;
   callsCount: number;
   lastCall: { startedAt: string; direction: CallDirection; status: CallStatus } | null;
 };
@@ -130,6 +176,8 @@ export type ContactDetailsResponse = {
     company: string | null;
     note: string | null;
     isBlocked: boolean;
+    ownerId: string | null;
+    owner: { id: string; name: string; extension: string | null } | null;
   };
   calls: CallItem[];
 };
@@ -140,6 +188,7 @@ export type UserRow = {
   email: string;
   phone: string | null;
   extension: string | null;
+  personalNumber: string | null;
   role: Role;
   isActive: boolean;
   mustChangePassword: boolean;
@@ -172,9 +221,10 @@ export type AuditResponse = {
 };
 
 export type TelephonyStatusResponse = {
-  provider: 'mock' | 'exolve';
+  provider: 'mock' | 'exolve' | 'sipuni';
   configured: boolean;
   webhookUrl: string;
+  routingUrl: string;
   credentials: Record<string, boolean>;
   lastCall: { startedAt: string; provider: string; status: CallStatus } | null;
   callsLast24h: number;

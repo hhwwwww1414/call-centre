@@ -3,6 +3,7 @@ import {
   BarChart3,
   ClipboardList,
   LayoutDashboard,
+  ListChecks,
   PhoneCall,
   PhoneForwarded,
   Settings,
@@ -25,6 +26,7 @@ export type NavItem = {
 export const WORK_NAV: NavItem[] = [
   { href: '/', label: ru.nav.dashboard, icon: LayoutDashboard, exact: true },
   { href: '/calls', label: ru.nav.calls, icon: PhoneCall },
+  { href: '/tasks', label: ru.nav.tasks, icon: ListChecks },
   { href: '/contacts', label: ru.nav.contacts, icon: Users },
   { href: '/profile', label: ru.nav.profile, icon: User },
 ];
@@ -37,12 +39,15 @@ export const ADMIN_NAV: NavItem[] = [
   { href: '/admin/settings', label: ru.nav.settings, icon: Settings, adminOnly: true },
 ];
 
-/** Нижняя навигация на телефоне — ровно 4 пункта (ТЗ 2.5). */
+/**
+ * Нижняя навигация на телефоне — ровно 4 пункта (ТЗ 2.5). Профиль доступен
+ * из меню пользователя в шапке, поэтому его место заняли задачи.
+ */
 export const MOBILE_NAV: NavItem[] = [
   { href: '/calls', label: ru.nav.calls, icon: PhoneCall },
   { href: '/', label: ru.nav.dashboard, icon: LayoutDashboard, exact: true },
+  { href: '/tasks', label: ru.nav.tasks, icon: ListChecks },
   { href: '/contacts', label: ru.nav.contacts, icon: Users },
-  { href: '/profile', label: ru.nav.profile, icon: User },
 ];
 
 export function visibleNav(role: Role): { work: NavItem[]; admin: NavItem[] } {

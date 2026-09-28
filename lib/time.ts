@@ -8,7 +8,14 @@ import type { PeriodPreset } from '@/lib/validation';
  * date-fns-tz не тянем: нужного хватает Intl, который уже есть в рантайме.
  */
 
-type DateParts = { year: number; month: number; day: number; hour: number; minute: number; second: number };
+type DateParts = {
+  year: number;
+  month: number;
+  day: number;
+  hour: number;
+  minute: number;
+  second: number;
+};
 
 function partsIn(date: Date, timeZone: string): DateParts {
   const dtf = new Intl.DateTimeFormat('en-US', {
@@ -56,7 +63,9 @@ export function startOfDayInZone(date: Date, timeZone: string): Date {
 
 export function endOfDayInZone(date: Date, timeZone: string): Date {
   const start = startOfDayInZone(date, timeZone);
-  return new Date(startOfDayInZone(new Date(start.getTime() + 36 * 3600_000), timeZone).getTime() - 1);
+  return new Date(
+    startOfDayInZone(new Date(start.getTime() + 36 * 3600_000), timeZone).getTime() - 1,
+  );
 }
 
 export function addDays(date: Date, days: number): Date {
@@ -137,7 +146,13 @@ export function formatInZone(
         ? { day: '2-digit', month: '2-digit', year: 'numeric' }
         : style === 'short'
           ? { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }
-          : { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' };
+          : {
+              day: '2-digit',
+              month: '2-digit',
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+            };
 
   return new Intl.DateTimeFormat('ru-RU', { timeZone, hour12: false, ...options }).format(value);
 }
@@ -165,3 +180,17 @@ export function isoDayLabel(iso: string): string {
 }
 
 export const WEEKDAY_LABELS = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'] as const;
+
+/** Сколько осталось до срока: «2 дн 4 ч», «35 мин»; для прошедшего — сколько просрочено. */
+export function formatTimeLeft(date: Date | string | null | undefined, now = Date.now()): string {
+  if (!date) return '—';
+  const value = typeof date === 'string' ? new Date(date) : date;
+  const diffMinutes = Math.round(Math.abs(value.getTime() - now) / 60_000);
+
+  if (diffMinutes < 60) return `${Math.max(1, diffMinutes)} мин`;
+  const hours = Math.floor(diffMinutes / 60);
+  if (hours < 24) return `${hours} ч`;
+  const days = Math.floor(hours / 24);
+  const restHours = hours % 24;
+  return restHours > 0 && days < 7 ? `${days} дн ${restHours} ч` : `${days} дн`;
+}
