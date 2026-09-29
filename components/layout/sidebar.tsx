@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import * as React from 'react';
 
-import { Logo } from '@/components/brand/logo';
+import { Logo, Wordmark } from '@/components/brand/logo';
 import { UserMenu } from '@/components/layout/user-menu';
 import { Button } from '@/components/ui/button';
 import { ru } from '@/lib/i18n/ru';
@@ -45,21 +45,43 @@ export function Sidebar({
       )}
       data-collapsed={collapsed}
     >
-      <div className={cn('flex h-20 items-center gap-2 px-3 lg:px-4')}>
+      {/* Высота и нижняя граница совпадают с шапкой — линия идёт через весь экран */}
+      <div
+        className={cn(
+          'flex h-16 shrink-0 items-center border-b border-[var(--border)] md:h-20',
+          collapsed ? 'justify-center px-2' : 'justify-center px-2 lg:justify-start lg:px-5',
+        )}
+      >
         <Link
           href="/"
-          className="flex min-w-0 items-center gap-2.5"
           aria-label={`${ru.app.name} — ${ru.app.subtitle}`}
+          className="group flex min-w-0 items-center rounded-lg outline-offset-4"
         >
-          {/* В свёрнутом сайдбаре знак ужимается по ширине колонки,
-              в развёрнутом — идёт в полный размер с подписью раздела */}
-          <Logo
-            width={collapsed ? 40 : 40}
-            className={cn('shrink-0', collapsed ? '' : 'lg:hidden')}
-          />
-          <span className={cn('min-w-0 flex-col gap-0.5', collapsed ? 'hidden' : 'hidden lg:flex')}>
-            <Logo width={92} />
-            <span className="text-2xs truncate text-[var(--text-muted)]">{ru.app.subtitle}</span>
+          {/* Свёрнутое меню и планшет: знак V2W в плитке по центру колонки */}
+          <span
+            className={cn(
+              'flex size-10 items-center justify-center rounded-xl border border-[var(--brand)]/25 bg-[var(--brand-soft)] transition-transform duration-200 group-hover:scale-105',
+              collapsed ? '' : 'lg:hidden',
+            )}
+          >
+            <Logo width={28} />
+          </span>
+
+          {/* Развёрнутое меню: словесный знак и подпись раздела */}
+          <span
+            className={cn(
+              'min-w-0 flex-col gap-2 transition-opacity duration-200 group-hover:opacity-85',
+              collapsed ? 'hidden' : 'hidden lg:flex',
+            )}
+          >
+            <Wordmark width={128} />
+            <span className="flex items-center gap-1.5 text-[10px] leading-none font-semibold tracking-[0.18em] text-[var(--text-muted)] uppercase">
+              <span
+                className="size-1.5 rounded-full bg-[var(--brand)] dark:bg-[var(--brand-text)]"
+                aria-hidden
+              />
+              {ru.app.subtitle}
+            </span>
           </span>
         </Link>
       </div>

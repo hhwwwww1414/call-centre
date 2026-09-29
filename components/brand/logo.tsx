@@ -35,3 +35,36 @@ export function Logo({
     />
   );
 }
+
+/**
+ * Словесный знак VIN2WIN в цветах темы: белый на тёмной, чёрно-зелёный на
+ * светлой. Оба файла в DOM, видимость переключает класс темы на body —
+ * он ставится до гидратации, поэтому логотип не мигает при загрузке.
+ */
+export function Wordmark({ width = 124, className }: { width?: number; className?: string }) {
+  // Исходники 744×140 — держим пропорцию, чтобы буквы не плыли
+  const height = Math.round((width * 140) / 744);
+  const common = {
+    alt: ru.app.name,
+    width,
+    height,
+    unoptimized: true,
+    draggable: false,
+    style: { width, height },
+  } as const;
+  return (
+    <span
+      className={cn('relative block shrink-0 select-none', className)}
+      style={{ width, height }}
+    >
+      <Image src="/logo-black.svg" {...common} alt={common.alt} className="dark:hidden" priority />
+      <Image
+        src="/logo-white.svg"
+        {...common}
+        alt={common.alt}
+        className="hidden dark:block"
+        priority
+      />
+    </span>
+  );
+}
