@@ -13,7 +13,7 @@ import {
 import * as React from 'react';
 
 import { AudioPlayer } from '@/components/calls/audio-player';
-import { CallDrawer } from '@/components/calls/call-drawer';
+import { CallDrawer, CallEditors } from '@/components/calls/call-drawer';
 import { CallStatusBadge, DirectionIcon, OutcomeBadge } from '@/components/calls/call-presentation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -338,8 +338,12 @@ function ContactCall({
           ) : (
             <p className="text-xs text-[var(--text-muted)]">Запись этого звонка недоступна.</p>
           )}
-          <Button size="sm" variant="secondary" onClick={onEdit}>
-            Подробности и редактирование
+          {/* Итог, резюме, комментарий и метки правятся прямо здесь — без перехода */}
+          <div className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-4">
+            <CallEditors call={call} />
+          </div>
+          <Button size="sm" variant="ghost" onClick={onEdit}>
+            Таймлайн и транскрипция
           </Button>
         </div>
       ) : null}

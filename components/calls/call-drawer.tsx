@@ -64,7 +64,6 @@ function DrawerBody({
   onClose: () => void;
 }) {
   const { data, isLoading, isError } = useCall(callId);
-  const update = useUpdateCall(callId);
 
   if (isLoading) {
     return (
@@ -141,66 +140,7 @@ function DrawerBody({
 
           <Separator />
 
-          <ResultEditor
-            result={call.result}
-            important={call.isImportant}
-            onChange={(input) =>
-              update.mutate(input, {
-                onError: () =>
-                  toast.error(ru.errors.saveFailed, { description: ru.errors.saveFailedHint }),
-              })
-            }
-          />
-
-          <CommentEditor
-            callId={callId}
-            id="call-summary-edit"
-            label={ru.callResult.summary}
-            placeholder={ru.callResult.summaryPlaceholder}
-            initial={call.summary ?? ''}
-            onSave={(summary) =>
-              update.mutateAsync({ summary }).catch(() => {
-                toast.error(ru.errors.saveFailed, { description: ru.errors.saveFailedHint });
-              })
-            }
-          />
-
-          <OutcomeEditor
-            value={call.outcome}
-            onChange={(outcome) => {
-              update.mutate(
-                { outcome },
-                {
-                  onError: () =>
-                    toast.error(ru.errors.saveFailed, { description: ru.errors.saveFailedHint }),
-                },
-              );
-            }}
-            saving={update.isPending}
-          />
-
-          <CommentEditor
-            callId={callId}
-            initial={call.comment ?? ''}
-            onSave={(comment) =>
-              update.mutateAsync({ comment }).catch(() => {
-                toast.error(ru.errors.saveFailed, { description: ru.errors.saveFailedHint });
-              })
-            }
-          />
-
-          <TagsEditor
-            tags={call.tags}
-            onChange={(tags) => {
-              update.mutate(
-                { tags },
-                {
-                  onError: () =>
-                    toast.error(ru.errors.saveFailed, { description: ru.errors.saveFailedHint }),
-                },
-              );
-            }}
-          />
+          <CallEditors call={call} />
 
           <Separator />
 
@@ -314,6 +254,91 @@ function TranscriptSection() {
         </div>
       </div>
     </section>
+  );
+}
+
+/**
+ * Всё, что менеджер правит в звонке: итог, резюме, результат, комментарий,
+ * метки. Общий блок для боковой карточки звонка и карточки клиента.
+ */
+export function CallEditors({
+  call,
+}: {
+  call: {
+    id: string;
+    result: 'SUCCESS' | 'FAILURE' | null;
+    isImportant: boolean;
+    summary: string | null;
+    outcome: CallOutcome;
+    comment: string | null;
+    tags: string[];
+  };
+}) {
+  const callId = call.id;
+  const update = useUpdateCall(callId);
+  return (
+    <div className="flex flex-col gap-5">
+      <ResultEditor
+        result={call.result}
+        important={call.isImportant}
+        onChange={(input) =>
+          update.mutate(input, {
+            onError: () =>
+              toast.error(ru.errors.saveFailed, { description: ru.errors.saveFailedHint }),
+          })
+        }
+      />
+
+      <CommentEditor
+        callId={call.id}
+        id="call-summary-edit"
+        label={ru.callResult.summary}
+        placeholder={ru.callResult.summaryPlaceholder}
+        initial={call.summary ?? ''}
+        onSave={(summary) =>
+          update.mutateAsync({ summary }).catch(() => {
+            toast.error(ru.errors.saveFailed, { description: ru.errors.saveFailedHint });
+          })
+        }
+      />
+
+      <OutcomeEditor
+        value={call.outcome}
+        onChange={(outcome) => {
+          update.mutate(
+            { outcome },
+            {
+              onError: () =>
+                toast.error(ru.errors.saveFailed, { description: ru.errors.saveFailedHint }),
+            },
+          );
+        }}
+        saving={update.isPending}
+      />
+
+      <CommentEditor
+        callId={call.id}
+        initial={call.comment ?? ''}
+        onSave={(comment) =>
+          update.mutateAsync({ comment }).catch(() => {
+            toast.error(ru.errors.saveFailed, { description: ru.errors.saveFailedHint });
+          })
+        }
+      />
+
+      <TagsEditor
+        tags={call.tags}
+        onChange={(tags) => {
+          update.mutate(
+            { tags },
+            {
+              onError: () =>
+                toast.error(ru.errors.saveFailed, { description: ru.errors.saveFailedHint }),
+            },
+          );
+        }}
+      />
+    </div>
   );
 }
 
