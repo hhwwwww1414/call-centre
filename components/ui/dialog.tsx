@@ -20,9 +20,21 @@ function Overlay({ className, ...props }: React.ComponentProps<typeof DialogPrim
   );
 }
 
+/**
+ * При открытии фокус встаёт на само окно, а не на первую кнопку: иначе рамка
+ * фокуса на крестике выглядит как выделение. Tab дальше ведёт по окну как обычно.
+ */
+function focusSelf(event: Event, handler: ((event: Event) => void) | undefined) {
+  handler?.(event);
+  if (event.defaultPrevented) return;
+  event.preventDefault();
+  (event.target as HTMLElement | null)?.focus({ preventScroll: true });
+}
+
 export function DialogContent({
   className,
   children,
+  onOpenAutoFocus,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content>) {
   return (
@@ -31,11 +43,13 @@ export function DialogContent({
       <DialogPrimitive.Content
         className={cn(
           'overlay-enter fixed top-1/2 left-1/2 z-50 w-[calc(100vw-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2',
-          'shadow-overlay max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-xl border border-[var(--border)] bg-[var(--popover)]',
+          'shadow-overlay max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-2xl border border-[var(--border)] bg-[var(--popover)] outline-none',
           // На телефоне модалка приезжает снизу — так до неё дотягивается большой палец
           'max-sm:top-auto max-sm:bottom-0 max-sm:left-0 max-sm:w-full max-sm:max-w-none max-sm:translate-x-0 max-sm:translate-y-0 max-sm:rounded-b-none',
           className,
         )}
+        tabIndex={-1}
+        onOpenAutoFocus={(event) => focusSelf(event, onOpenAutoFocus)}
         {...props}
       >
         {children}
@@ -99,6 +113,7 @@ export function DialogFooter({ className, ...props }: React.ComponentProps<'div'
 export function SheetContent({
   className,
   children,
+  onOpenAutoFocus,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content>) {
   return (
@@ -106,11 +121,13 @@ export function SheetContent({
       <Overlay />
       <DialogPrimitive.Content
         className={cn(
-          'sheet-enter shadow-overlay fixed top-0 right-0 z-50 flex h-dvh w-full max-w-xl flex-col border-l border-[var(--border)] bg-[var(--card)] md:top-3 md:right-3 md:h-[calc(100dvh-1.5rem)] md:rounded-xl md:border',
+          'sheet-enter shadow-overlay fixed top-0 right-0 z-50 flex h-dvh w-full max-w-xl flex-col border-l border-[var(--border)] bg-[var(--card)] outline-none md:top-3 md:right-3 md:h-[calc(100dvh-1.5rem)] md:rounded-2xl md:border',
           // На телефоне панель занимает весь экран
           'max-md:max-w-none',
           className,
         )}
+        tabIndex={-1}
+        onOpenAutoFocus={(event) => focusSelf(event, onOpenAutoFocus)}
         {...props}
       >
         {children}

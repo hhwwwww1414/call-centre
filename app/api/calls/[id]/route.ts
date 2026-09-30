@@ -1,5 +1,5 @@
 import { badRequest, handleRoute, notFound } from '@/lib/api';
-import { CallResult, CallStatus } from '@prisma/client';
+import { CallOutcome, CallResult, CallStatus } from '@prisma/client';
 import { isNoConversation } from '@/lib/call-rules';
 import { writeAudit } from '@/lib/audit';
 import { callScopeFilter, requireUser } from '@/lib/auth/rbac';
@@ -50,6 +50,14 @@ export async function PATCH(request: Request, { params }: Params) {
     const nextResult = input.result === undefined ? existing.result : input.result;
     if (isNoConversation(nextOutcome) && nextResult === CallResult.SUCCESS) {
       throw badRequest('Без разговора звонок не может быть успешным');
+    }
+    // Результат разговора без исхода ничем не подтверждён — сначала исход
+    if (
+      existing.status === CallStatus.COMPLETED &&
+      nextOutcome === CallOutcome.NEW &&
+      input.result != null
+    ) {
+      throw badRequest('Сначала отметьте исход: с кем удалось поговорить');
     }
     if (isNoConversation(input.outcome) && existing.status !== CallStatus.COMPLETED) {
       throw badRequest('Этот исход можно отметить только у звонка, на который ответили');

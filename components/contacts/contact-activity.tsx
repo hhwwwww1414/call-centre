@@ -14,7 +14,7 @@ import * as React from 'react';
 
 import { AudioPlayer } from '@/components/calls/audio-player';
 import { CallDrawer, CallEditors } from '@/components/calls/call-drawer';
-import { CallStatusBadge, DirectionIcon, OutcomeBadge } from '@/components/calls/call-presentation';
+import { CallVerdict, DirectionIcon } from '@/components/calls/call-presentation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -290,8 +290,12 @@ function ContactCall({
             ) : null}
           </span>
           <span className="flex flex-wrap items-center gap-2">
-            <CallStatusBadge status={call.status} />
-            <OutcomeBadge outcome={call.outcome} />
+            {call.status !== 'COMPLETED' ? (
+              <span className="text-xs text-[var(--text-secondary)]">
+                {ru.callStatus[call.status]}
+              </span>
+            ) : null}
+            <CallVerdict status={call.status} outcome={call.outcome} result={call.result} />
             <span className="text-xs text-[var(--text-muted)]">
               {call.user?.name ?? 'Без менеджера'}
             </span>
@@ -335,15 +339,13 @@ function ContactCall({
         <div id={`recording-${call.id}`} className="space-y-3 px-4 pb-4 sm:pr-5 sm:pl-16">
           {call.recordingReady ? (
             <AudioPlayer key={call.id} src={`/api/calls/${call.id}/recording`} />
-          ) : (
-            <p className="text-xs text-[var(--text-muted)]">Запись этого звонка недоступна.</p>
-          )}
+          ) : null}
           {/* Итог, резюме, комментарий и метки правятся прямо здесь — без перехода */}
           <div className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-4">
             <CallEditors call={call} />
           </div>
           <Button size="sm" variant="ghost" onClick={onEdit}>
-            Таймлайн и транскрипция
+            Открыть звонок
           </Button>
         </div>
       ) : null}

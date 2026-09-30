@@ -139,6 +139,7 @@ export async function getCallForUser(user: SessionUser, callId: string) {
           direction: true,
           status: true,
           outcome: true,
+          result: true,
           startedAt: true,
           durationSeconds: true,
           user: { select: { id: true, name: true } },

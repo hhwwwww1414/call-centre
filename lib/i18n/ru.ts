@@ -177,7 +177,7 @@ export const ru = {
     timelineNoAnswer: 'Ответа не было',
     recording: 'Запись разговора',
     recordingMissing: 'Записи нет',
-    recordingMissingHint: 'Запись появится, когда её отдаст телефония',
+    recordingMissingHint: 'Запись недоступна',
     recordingDownload: 'Скачать',
     transcript: 'Транскрипция',
     transcriptUnavailable: 'Транскрипция будет доступна после подключения телефонии',

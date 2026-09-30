@@ -6,9 +6,11 @@ import * as React from 'react';
 import { toast } from 'sonner';
 
 import {
-  CallStatusBadge,
+  ANSWER_ONLY_OUTCOMES,
   DirectionIcon,
   externalNumber,
+  OUTCOME_CHOICES,
+  OUTCOME_RESULT,
 } from '@/components/calls/call-presentation';
 import { Button } from '@/components/ui/button';
 import {
@@ -34,32 +36,6 @@ import { cn, formatDurationWords } from '@/lib/utils';
 const SNOOZE_MS = 15 * 60_000;
 
 type Result = 'SUCCESS' | 'FAILURE';
-
-/** Выбор исхода подсказывает итог: сделка — успех, отказ — неуспех. */
-const OUTCOME_RESULT: Partial<Record<CallOutcome, Result>> = {
-  INTERESTED: 'SUCCESS',
-  DEAL: 'SUCCESS',
-  CALLBACK: 'SUCCESS',
-  REFUSED: 'FAILURE',
-  WRONG_NUMBER: 'FAILURE',
-  SPAM: 'FAILURE',
-  VOICEMAIL: 'FAILURE',
-  HUNG_UP: 'FAILURE',
-};
-
-const OUTCOME_CHOICES: CallOutcome[] = [
-  'INTERESTED',
-  'DEAL',
-  'CALLBACK',
-  'REFUSED',
-  'WRONG_NUMBER',
-  'SPAM',
-  'VOICEMAIL',
-  'HUNG_UP',
-];
-
-/** Исходы, которые не бывают без ответа на звонок. */
-const ANSWER_ONLY: CallOutcome[] = ['VOICEMAIL', 'HUNG_UP'];
 
 /**
  * Короткое соединение почти всегда одно из трёх. Одна кнопка вместо формы:
@@ -273,17 +249,15 @@ function ResultForm({
       <DialogHeader>
         <DialogTitle>{ru.callResult.title}</DialogTitle>
         <DialogDescription>
-          {remaining > 0 ? ru.callResult.remaining(remaining) : ru.callResult.subtitle}
+          {remaining > 0 ? ru.callResult.remaining(remaining) : null}
         </DialogDescription>
       </DialogHeader>
 
-      <DialogBody className="flex flex-col gap-4">
-        <div className="flex items-center gap-3 rounded-lg bg-[var(--surface-2)] p-3">
-          <DirectionIcon
-            direction={call.direction}
-            status={call.status}
-            className="size-5 shrink-0"
-          />
+      <DialogBody className="flex flex-col gap-5">
+        <div className="flex items-center gap-3">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[var(--surface)]">
+            <DirectionIcon direction={call.direction} status={call.status} />
+          </span>
           <div className="min-w-0 flex-1">
             <p className="numeric truncate text-sm font-semibold text-[var(--foreground)]">
               {call.contact?.name || formatPhone(number)}
@@ -294,16 +268,14 @@ function ResultForm({
               {call.durationSeconds > 0 ? ` · ${formatDurationWords(call.durationSeconds)}` : ''}
             </p>
           </div>
-          <CallStatusBadge status={call.status} />
         </div>
 
         {short ? (
-          <div className="rounded-lg border border-[var(--border)] p-3">
-            <p className="text-sm font-semibold text-[var(--foreground)]">
+          <div className="flex flex-col gap-2">
+            <p className="text-xs font-medium text-[var(--text-secondary)]">
               {ru.callResult.quickTitle(call.durationSeconds)}
             </p>
-            <p className="text-2xs mt-0.5 text-[var(--text-muted)]">{ru.callResult.quickHint}</p>
-            <div className="mt-2.5 grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               {QUICK_OUTCOMES.map((value) => (
                 <Button
                   key={value}
@@ -320,65 +292,67 @@ function ResultForm({
           </div>
         ) : null}
 
-        <div>
+        <div className="flex flex-col gap-2">
+          <p className="text-xs font-medium text-[var(--text-secondary)]">
+            {ru.callResult.outcome}
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {OUTCOME_CHOICES.filter(
+              (value) =>
+                (talked || !ANSWER_ONLY_OUTCOMES.includes(value)) &&
+                // Короткому звонку эти исходы уже предложены кнопками выше
+                !(short && QUICK_OUTCOMES.includes(value)),
+            ).map((value) => (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={outcome === value}
+                onClick={() => pickOutcome(value)}
+                className={cn(
+                  'h-8 rounded-full border px-3 text-xs transition-colors duration-150 max-md:h-10',
+                  outcome === value
+                    ? 'border-transparent bg-[var(--brand-soft)] font-medium text-[var(--brand)] dark:text-[var(--brand-text)]'
+                    : 'border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--foreground)]',
+                )}
+              >
+                {ru.callOutcome[value]}
+              </button>
+            ))}
+          </div>
+          {errors.outcome ? (
+            <p role="alert" className="text-2xs text-[var(--destructive)]">
+              {errors.outcome}
+            </p>
+          ) : null}
+        </div>
+
+        <div className="flex flex-col gap-2">
           <div
-            className="grid grid-cols-2 gap-2"
+            className="grid grid-cols-2 gap-1 rounded-xl bg-[var(--surface)] p-1"
             role="radiogroup"
             aria-label={ru.callResult.title}
           >
             <ResultButton
               active={result === 'SUCCESS'}
               tone="success"
-              icon={<ThumbsUp className="size-5" aria-hidden />}
+              icon={<ThumbsUp className="size-4" aria-hidden />}
               label={ru.callResult.success}
-              hint={ru.callResult.successHint}
               shortcut="1"
+              disabled={isNoConversation(outcome)}
               onClick={() => setResult('SUCCESS')}
             />
             <ResultButton
               active={result === 'FAILURE'}
               tone="danger"
-              icon={<ThumbsDown className="size-5" aria-hidden />}
+              icon={<ThumbsDown className="size-4" aria-hidden />}
               label={ru.callResult.failure}
-              hint={ru.callResult.failureHint}
               shortcut="2"
               onClick={() => setResult('FAILURE')}
             />
           </div>
           {errors.result ? (
-            <p role="alert" className="text-2xs mt-1.5 text-[var(--destructive)]">
+            <p role="alert" className="text-2xs text-[var(--destructive)]">
               {errors.result}
-            </p>
-          ) : null}
-        </div>
-
-        <div>
-          <p className="mb-1.5 text-xs font-medium text-[var(--text-secondary)]">
-            {ru.callResult.outcome}
-          </p>
-          <div className="flex flex-wrap gap-1.5">
-            {OUTCOME_CHOICES.filter((value) => talked || !ANSWER_ONLY.includes(value)).map(
-              (value) => (
-                <button
-                  key={value}
-                  type="button"
-                  aria-pressed={outcome === value}
-                  onClick={() => pickOutcome(value)}
-                  className={cn(
-                    'h-8 rounded-full border px-3 text-xs transition-colors max-md:h-10',
-                    outcome === value
-                      ? 'border-[var(--brand)] bg-[var(--brand-soft)] font-medium text-[var(--brand)] dark:text-[var(--brand-text)]'
-                      : 'border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--border-strong)]',
-                  )}
-                >
-                  {ru.callOutcome[value]}
-                </button>
-              ),
-            )}
-          </div>
-          {errors.outcome ? (
-            <p role="alert" className="text-2xs mt-1.5 text-[var(--destructive)]">
-              {errors.outcome}
             </p>
           ) : null}
         </div>
@@ -425,15 +399,8 @@ function ResultForm({
             <span className="block text-xs font-medium text-[var(--foreground)]">
               {ru.callResult.important}
             </span>
-            <span className="text-2xs block text-[var(--text-muted)]">
-              {ru.callResult.importantHint}
-            </span>
           </span>
         </button>
-
-        <p className="text-2xs hidden text-[var(--text-muted)] md:block">
-          {ru.callResult.shortcuts}
-        </p>
       </DialogBody>
 
       <DialogFooter>
@@ -453,36 +420,38 @@ function ResultButton({
   tone,
   icon,
   label,
-  hint,
   shortcut,
+  disabled,
   onClick,
 }: {
   active: boolean;
   tone: 'success' | 'danger';
   icon: React.ReactNode;
   label: string;
-  hint: string;
   shortcut: string;
+  disabled?: boolean;
   onClick: () => void;
 }) {
   const color = tone === 'success' ? 'var(--success)' : 'var(--destructive)';
-  const soft = tone === 'success' ? 'var(--success-soft)' : 'var(--destructive-soft)';
   return (
     <button
       type="button"
       role="radio"
       aria-checked={active}
+      disabled={disabled}
       onClick={onClick}
       className={cn(
-        'relative flex flex-col items-start gap-1.5 rounded-xl border-2 p-3 text-left transition-[border-color,background-color,transform] duration-150 active:scale-[0.98]',
-        !active && 'border-[var(--border)] hover:border-[var(--border-strong)]',
+        'relative flex h-10 items-center justify-center gap-2 rounded-lg text-sm font-medium transition-[background-color,color,box-shadow] duration-150',
+        'disabled:cursor-not-allowed disabled:opacity-40',
+        active
+          ? 'shadow-soft bg-[var(--card)]'
+          : 'text-[var(--text-muted)] enabled:hover:text-[var(--foreground)]',
       )}
-      style={active ? { borderColor: color, backgroundColor: soft } : undefined}
+      style={active ? { color } : undefined}
     >
-      <span style={{ color: active ? color : 'var(--text-muted)' }}>{icon}</span>
-      <span className="text-sm font-semibold text-[var(--foreground)]">{label}</span>
-      <span className="text-2xs text-[var(--text-muted)]">{hint}</span>
-      <kbd className="text-2xs absolute top-2.5 right-2.5 hidden rounded border border-[var(--border)] px-1.5 text-[var(--text-muted)] md:block">
+      {icon}
+      {label}
+      <kbd className="text-2xs absolute right-2.5 hidden rounded border border-[var(--border)] px-1.5 font-normal text-[var(--text-muted)] md:block">
         {shortcut}
       </kbd>
     </button>

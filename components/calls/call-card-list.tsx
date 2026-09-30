@@ -3,12 +3,10 @@
 import { MessageSquareText, Phone, Play } from 'lucide-react';
 
 import {
-  CallStatusBadge,
+  CallVerdict,
   DirectionIcon,
   externalNumber,
   ImportantStar,
-  OutcomeBadge,
-  ResultBadge,
 } from '@/components/calls/call-presentation';
 import { useRealtime } from '@/components/providers/realtime-provider';
 import type { CallItem } from '@/lib/client/types';
@@ -75,14 +73,11 @@ export function CallCardList({
                 </div>
 
                 <div className="flex flex-wrap items-center gap-1.5">
-                  <CallStatusBadge status={call.status} />
-                  {call.durationSeconds > 0 ? (
-                    <span className="numeric text-2xs text-[var(--text-secondary)]">
-                      {formatDuration(call.durationSeconds)}
-                    </span>
-                  ) : null}
-                  <ResultBadge result={call.result} />
-                  {call.outcome !== 'NEW' ? <OutcomeBadge outcome={call.outcome} /> : null}
+                  <span className="numeric text-2xs text-[var(--text-secondary)]">
+                    {ru.callStatus[call.status]}
+                    {call.durationSeconds > 0 ? ` · ${formatDuration(call.durationSeconds)}` : ''}
+                  </span>
+                  <CallVerdict status={call.status} outcome={call.outcome} result={call.result} />
                   {call.recordingReady ? (
                     <Play
                       className="size-3 text-[var(--text-muted)]"

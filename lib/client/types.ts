@@ -121,6 +121,7 @@ export type CallHistoryItem = {
   direction: CallDirection;
   status: CallStatus;
   outcome: CallOutcome;
+  result: CallResult | null;
   startedAt: string;
   durationSeconds: number;
   user: { id: string; name: string } | null;

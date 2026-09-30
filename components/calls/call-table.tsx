@@ -4,12 +4,10 @@ import { MessageSquareText, Play } from 'lucide-react';
 import * as React from 'react';
 
 import {
-  CallStatusBadge,
+  CallVerdict,
   DirectionIcon,
   externalNumber,
   ImportantStar,
-  OutcomeBadge,
-  ResultBadge,
 } from '@/components/calls/call-presentation';
 import { useRealtime } from '@/components/providers/realtime-provider';
 import type { CallItem } from '@/lib/client/types';
@@ -92,9 +90,11 @@ export function CallTable({ calls, timezone, showManager, selectedId, onSelect }
                 )}
               >
                 <td className="px-3 py-2.5">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2.5 whitespace-nowrap">
                     <DirectionIcon direction={call.direction} status={call.status} />
-                    <CallStatusBadge status={call.status} />
+                    <span className="text-[var(--text-secondary)]">
+                      {ru.callStatus[call.status]}
+                    </span>
                   </div>
                 </td>
 
@@ -135,12 +135,7 @@ export function CallTable({ calls, timezone, showManager, selectedId, onSelect }
                 </td>
 
                 <td className="px-3 py-2.5">
-                  <div className="flex flex-wrap items-center gap-1">
-                    <ResultBadge result={call.result} />
-                    {call.outcome !== 'NEW' || !call.result ? (
-                      <OutcomeBadge outcome={call.outcome} />
-                    ) : null}
-                  </div>
+                  <CallVerdict status={call.status} outcome={call.outcome} result={call.result} />
                 </td>
 
                 <td className="px-3 py-2.5">

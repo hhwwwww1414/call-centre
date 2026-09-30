@@ -105,6 +105,33 @@ const OUTCOME_TONE: Record<CallOutcome, BadgeProps['tone']> = {
   HUNG_UP: 'outline',
 };
 
+/** Исходы в порядке частоты для холодного обзвона. */
+export const OUTCOME_CHOICES: CallOutcome[] = [
+  'INTERESTED',
+  'CALLBACK',
+  'DEAL',
+  'REFUSED',
+  'WRONG_NUMBER',
+  'VOICEMAIL',
+  'HUNG_UP',
+  'SPAM',
+];
+
+/** Исходы, которых не бывает без ответа на звонок. */
+export const ANSWER_ONLY_OUTCOMES: CallOutcome[] = ['VOICEMAIL', 'HUNG_UP'];
+
+/** Выбор исхода подсказывает результат: сделка — успех, отказ — неуспех. */
+export const OUTCOME_RESULT: Partial<Record<CallOutcome, 'SUCCESS' | 'FAILURE'>> = {
+  INTERESTED: 'SUCCESS',
+  DEAL: 'SUCCESS',
+  CALLBACK: 'SUCCESS',
+  REFUSED: 'FAILURE',
+  WRONG_NUMBER: 'FAILURE',
+  SPAM: 'FAILURE',
+  VOICEMAIL: 'FAILURE',
+  HUNG_UP: 'FAILURE',
+};
+
 export function OutcomeBadge({ outcome, className }: { outcome: CallOutcome; className?: string }) {
   return (
     <Badge tone={OUTCOME_TONE[outcome]} className={className}>
@@ -127,6 +154,43 @@ export function ResultBadge({
     <Badge tone={result === 'SUCCESS' ? 'success' : 'danger'} className={className}>
       <Icon className="size-3" aria-hidden />
       {ru.callResult[result]}
+    </Badge>
+  );
+}
+
+/**
+ * Итог звонка одной плашкой: исход, окрашенный по результату. Недозвон
+ * итога не имеет — статус и так это говорит, поэтому прочерк.
+ */
+export function CallVerdict({
+  status,
+  outcome,
+  result,
+  className,
+}: {
+  status: CallStatus;
+  outcome: CallOutcome;
+  result: 'SUCCESS' | 'FAILURE' | null;
+  className?: string;
+}) {
+  if (status !== CallStatus.COMPLETED && outcome === CallOutcome.NEW) {
+    return <span className={cn('text-[var(--text-muted)]', className)}>—</span>;
+  }
+  if (!result && outcome === CallOutcome.NEW) {
+    return (
+      <Badge tone="attention" className={className}>
+        {ru.callResult.none}
+      </Badge>
+    );
+  }
+  const Icon = result === 'SUCCESS' ? ThumbsUp : result === 'FAILURE' ? ThumbsDown : null;
+  return (
+    <Badge
+      tone={result === 'SUCCESS' ? 'success' : result === 'FAILURE' ? 'neutral' : 'outline'}
+      className={className}
+    >
+      {Icon ? <Icon className="size-3" aria-hidden /> : null}
+      {outcome !== CallOutcome.NEW ? ru.callOutcome[outcome] : ru.callResult[result!]}
     </Badge>
   );
 }
