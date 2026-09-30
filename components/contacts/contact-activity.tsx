@@ -295,7 +295,7 @@ function ContactCall({
             <span className="text-xs text-[var(--text-muted)]">
               {call.user?.name ?? 'Без менеджера'}
             </span>
-            {call.recordingReady && call.recordingUrl ? (
+            {call.recordingReady ? (
               <FileAudio
                 className="size-3.5 text-[var(--brand)] dark:text-[var(--brand-text)]"
                 aria-label="Есть запись"
@@ -333,8 +333,8 @@ function ContactCall({
       </button>
       {expanded ? (
         <div id={`recording-${call.id}`} className="space-y-3 px-4 pb-4 sm:pr-5 sm:pl-16">
-          {call.recordingReady && call.recordingUrl ? (
-            <AudioPlayer key={call.id} src={call.recordingUrl} />
+          {call.recordingReady ? (
+            <AudioPlayer key={call.id} src={`/api/calls/${call.id}/recording`} />
           ) : (
             <p className="text-xs text-[var(--text-muted)]">Запись этого звонка недоступна.</p>
           )}

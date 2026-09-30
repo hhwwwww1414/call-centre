@@ -3,6 +3,7 @@ import { CallDirection, CallResult, CallStatus, type Call } from '@prisma/client
 import { prisma } from '@/lib/db';
 import { logger } from '@/lib/logger';
 import { toE164 } from '@/lib/phone';
+import { scheduleArchive } from '@/lib/services/recordings';
 import { syncTaskCompletion } from '@/lib/services/tasks';
 import type { NormalizedCallEvent } from '@/lib/telephony/types';
 
@@ -36,7 +37,8 @@ export async function ingestCallEvent(event: NormalizedCallEvent, provider: stri
     waitSeconds,
     durationSeconds,
     recordingUrl: event.recordingUrl ?? null,
-    recordingReady: Boolean(event.recordingUrl),
+    // Ссылку провайдер присылает и на недозвон, но файл там пустой
+    recordingReady: Boolean(event.recordingUrl) && event.status === CallStatus.COMPLETED,
     rawPayload: safeRaw(event.raw),
   };
 
@@ -84,7 +86,9 @@ export async function ingestCallEvent(event: NormalizedCallEvent, provider: stri
           ...(waitSeconds !== null ? { waitSeconds } : {}),
           ...(durationSeconds > 0 || isTerminal(event.status) ? { durationSeconds } : {}),
           // Уже сохранённую запись не затираем пустой
-          ...(data.recordingUrl ? { recordingUrl: data.recordingUrl, recordingReady: true } : {}),
+          ...(data.recordingUrl
+            ? { recordingUrl: data.recordingUrl, recordingReady: data.recordingReady }
+            : {}),
           // Менеджер мог определиться только на втором событии
           ...(userId ? { userId } : {}),
           ...(needsResult ? { resultRequired: true } : {}),
@@ -96,6 +100,8 @@ export async function ingestCallEvent(event: NormalizedCallEvent, provider: stri
   });
 
   await claimContact(call);
+
+  if (call.recordingReady && !call.recordingKey) scheduleArchive(call.id);
 
   // Исходящий завершился — счётчики задач менеджера могли сдвинуться
   if (isTerminal(call.status) && call.direction === CallDirection.OUTBOUND) {

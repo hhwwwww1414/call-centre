@@ -150,8 +150,9 @@ model Call {
   durationSeconds Int       @default(0) // длительность разговора
   billSeconds     Int?
 
-  recordingUrl   String?
-  recordingReady Boolean @default(false)
+  recordingUrl   String? // ссылка провайдера — источник для переноса в S3
+  recordingReady Boolean @default(false) // есть что слушать: только у звонков с ответом
+  recordingKey   String? // ключ файла в нашем S3; пусто — ещё не перенесли
 
   transcript CallTranscript?
 

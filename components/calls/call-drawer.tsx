@@ -128,8 +128,8 @@ function DrawerBody({
             <h3 className="mb-2 text-xs font-semibold text-[var(--foreground)]">
               {ru.calls.recording}
             </h3>
-            {call.recordingReady && call.recordingUrl ? (
-              <AudioPlayer src={call.recordingUrl} />
+            {call.recordingReady ? (
+              <AudioPlayer src={`/api/calls/${call.id}/recording`} />
             ) : (
               <p className="rounded-lg bg-[var(--surface-2)] p-3 text-xs text-[var(--text-muted)]">
                 {ru.calls.recordingMissing}. {ru.calls.recordingMissingHint}
