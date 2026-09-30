@@ -18,6 +18,7 @@ import { toast } from 'sonner';
 
 import { KpiCard } from '@/components/dashboard/kpi-card';
 import { TaskCreateDialog } from '@/components/tasks/task-create-dialog';
+import { TaskActivityDialog } from '@/components/tasks/task-activity-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -55,6 +56,17 @@ export function TasksScreen({ role, timezone }: { role: Role; timezone: string }
   const [tab, setTab] = React.useState<Tab>('active');
   const [userId, setUserId] = React.useState(ALL);
   const [createOpen, setCreateOpen] = React.useState(false);
+  const [activityId, setActivityId] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    const fromHash = () => {
+      const match = window.location.hash.match(/^#task=(.+)$/);
+      if (match) setActivityId(decodeURIComponent(match[1]!));
+    };
+    fromHash();
+    window.addEventListener('hashchange', fromHash);
+    return () => window.removeEventListener('hashchange', fromHash);
+  }, []);
 
   const { data, isLoading, isError, refetch } = useTasks({
     status: tab,
@@ -186,18 +198,44 @@ export function TasksScreen({ role, timezone }: { role: Role; timezone: string }
       ) : manager ? (
         <div className="grid gap-3 lg:grid-cols-2">
           {(data?.items ?? []).map((task) => (
-            <MyTaskCard key={task.id} task={task} timezone={timezone} />
+            <MyTaskCard
+              key={task.id}
+              task={task}
+              timezone={timezone}
+              onOpen={() => setActivityId(task.id)}
+            />
           ))}
         </div>
       ) : (
         <div className="grid gap-3 xl:grid-cols-2">
           {groups.map((group) => (
-            <TaskGroupCard key={group.batchId} tasks={group.tasks} timezone={timezone} />
+            <TaskGroupCard
+              key={group.batchId}
+              tasks={group.tasks}
+              timezone={timezone}
+              onOpen={setActivityId}
+            />
           ))}
         </div>
       )}
 
       {!manager ? <TaskCreateDialog open={createOpen} onOpenChange={setCreateOpen} /> : null}
+      <TaskActivityDialog
+        id={activityId}
+        timezone={timezone}
+        onOpenChange={(open) => {
+          if (open) return;
+          setActivityId(null);
+          // Иначе повторный переход по той же ссылке из виджета не откроет окно
+          if (window.location.hash.startsWith('#task=')) {
+            window.history.replaceState(
+              null,
+              '',
+              window.location.pathname + window.location.search,
+            );
+          }
+        }}
+      />
     </div>
   );
 }
@@ -267,7 +305,15 @@ export function DueLabel({ task, timezone }: { task: TaskItem; timezone: string 
 }
 
 /** Карточка менеджера: крупный счётчик и сколько осталось — чтобы видеть цель. */
-function MyTaskCard({ task, timezone }: { task: TaskItem; timezone: string }) {
+function MyTaskCard({
+  task,
+  timezone,
+  onOpen,
+}: {
+  task: TaskItem;
+  timezone: string;
+  onOpen: () => void;
+}) {
   const left = Math.max(0, task.target - task.progress);
   return (
     <Card
@@ -279,7 +325,9 @@ function MyTaskCard({ task, timezone }: { task: TaskItem; timezone: string }) {
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h2 className="text-base font-semibold tracking-tight text-[var(--foreground)]">
-            {task.title}
+            <button type="button" onClick={onOpen} className="text-left hover:underline">
+              {task.title}
+            </button>
           </h2>
           <p className="text-2xs mt-0.5 text-[var(--text-muted)]">{ru.taskMetric[task.metric]}</p>
         </div>
@@ -296,7 +344,14 @@ function MyTaskCard({ task, timezone }: { task: TaskItem; timezone: string }) {
         </p>
       </div>
 
-      <ProgressBar value={task.percent} tone={taskTone(task)} size="lg" label={task.title} />
+      <button
+        type="button"
+        onClick={onOpen}
+        className="w-full text-left"
+        aria-label={`Хронология задачи: ${task.title}`}
+      >
+        <ProgressBar value={task.percent} tone={taskTone(task)} size="lg" label={task.title} />
+      </button>
 
       {task.description ? (
         <p className="rounded-lg bg-[var(--surface-2)] p-3 text-xs whitespace-pre-line text-[var(--text-secondary)]">
@@ -323,7 +378,15 @@ function MyTaskCard({ task, timezone }: { task: TaskItem; timezone: string }) {
  * Карточка админа: одна задача, выданная команде, и полоска по каждому
  * исполнителю — сразу видно, кто отстаёт.
  */
-function TaskGroupCard({ tasks, timezone }: { tasks: TaskItem[]; timezone: string }) {
+function TaskGroupCard({
+  tasks,
+  timezone,
+  onOpen,
+}: {
+  tasks: TaskItem[];
+  timezone: string;
+  onOpen: (id: string) => void;
+}) {
   const head = tasks[0]!;
   const target = tasks.reduce((sum, t) => sum + t.target, 0);
   const progress = tasks.reduce((sum, t) => sum + Math.min(t.progress, t.target), 0);
@@ -337,7 +400,13 @@ function TaskGroupCard({ tasks, timezone }: { tasks: TaskItem[]; timezone: strin
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h2 className="text-base font-semibold tracking-tight text-[var(--foreground)]">
-              {head.title}
+              <button
+                type="button"
+                onClick={() => onOpen(head.id)}
+                className="text-left hover:underline"
+              >
+                {head.title}
+              </button>
             </h2>
             <p className="text-2xs mt-0.5 flex flex-wrap items-center gap-x-2 text-[var(--text-muted)]">
               <span>
@@ -378,14 +447,27 @@ function TaskGroupCard({ tasks, timezone }: { tasks: TaskItem[]; timezone: strin
 
       <ul className="divide-y divide-[var(--border)] border-t border-[var(--border)]">
         {tasks.map((task) => (
-          <AssigneeRow key={task.id} task={task} showStatus={tasks.length > 1} />
+          <AssigneeRow
+            key={task.id}
+            task={task}
+            showStatus={tasks.length > 1}
+            onOpen={() => onOpen(task.id)}
+          />
         ))}
       </ul>
     </Card>
   );
 }
 
-function AssigneeRow({ task, showStatus }: { task: TaskItem; showStatus: boolean }) {
+function AssigneeRow({
+  task,
+  showStatus,
+  onOpen,
+}: {
+  task: TaskItem;
+  showStatus: boolean;
+  onOpen: () => void;
+}) {
   const update = useUpdateTask();
   const remove = useDeleteTask();
 
@@ -402,20 +484,30 @@ function AssigneeRow({ task, showStatus }: { task: TaskItem; showStatus: boolean
       <Avatar name={task.assignee.name} size="sm" />
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
-          <span className="truncate text-xs font-medium text-[var(--foreground)]">
+          <button
+            type="button"
+            onClick={onOpen}
+            className="truncate text-left text-xs font-medium text-[var(--foreground)] hover:underline"
+          >
             {task.assignee.name}
-          </span>
+          </button>
           <span className="numeric text-2xs shrink-0 text-[var(--text-secondary)]">
             {ru.tasks.progress(task.progress, task.target)} · {task.percent}%
           </span>
         </div>
-        <ProgressBar
-          value={task.percent}
-          tone={taskTone(task)}
-          size="sm"
-          className="mt-1.5"
-          label={task.assignee.name}
-        />
+        <button
+          type="button"
+          onClick={onOpen}
+          className="mt-1.5 w-full text-left"
+          aria-label={`Хронология задачи: ${task.assignee.name}`}
+        >
+          <ProgressBar
+            value={task.percent}
+            tone={taskTone(task)}
+            size="sm"
+            label={task.assignee.name}
+          />
+        </button>
       </div>
       {showStatus && task.status !== 'ACTIVE' ? (
         <span className="hidden sm:block">

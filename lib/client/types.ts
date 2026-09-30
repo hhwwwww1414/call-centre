@@ -79,6 +79,37 @@ export type TaskSummary = {
 
 export type TaskListResponse = { items: TaskItem[]; summary: TaskSummary };
 
+export type TaskActivityResponse = {
+  task: TaskItem;
+  total: number;
+  nextCursor: string | null;
+  calls: {
+    id: string;
+    toNumber: string;
+    startedAt: string;
+    status: CallStatus;
+    outcome: CallOutcome;
+    result: CallResult | null;
+    resultAt: string | null;
+    summary: string | null;
+    durationSeconds: number;
+    waitSeconds: number | null;
+    recordingReady: boolean;
+    contact: { name: string | null } | null;
+    credited: boolean;
+    /** Почему не засчитан — по тем же правилам, что и прогресс. */
+    reason: string | null;
+  }[];
+  audits: {
+    id: string;
+    action: string;
+    entityId: string;
+    meta: { from?: unknown; to?: unknown } | null;
+    createdAt: string;
+    actor: { name: string } | null;
+  }[];
+};
+
 export type CallListResponse = {
   items: CallItem[];
   nextCursor: string | null;

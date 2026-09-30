@@ -37,7 +37,7 @@ function ChartTooltip({
 }) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="rounded-md border border-[var(--border)] bg-[var(--popover)] px-2.5 py-2 text-2xs shadow-overlay">
+    <div className="text-2xs shadow-overlay rounded-md border border-[var(--border)] bg-[var(--popover)] px-2.5 py-2">
       {label !== undefined ? (
         <p className="mb-1 font-medium text-[var(--foreground)]">{label}</p>
       ) : null}
@@ -87,7 +87,13 @@ export function CallsBySeriesChart({
           interval="preserveStartEnd"
           minTickGap={12}
         />
-        <YAxis tick={axisStyle} axisLine={false} tickLine={false} allowDecimals={false} width={40} />
+        <YAxis
+          tick={axisStyle}
+          axisLine={false}
+          tickLine={false}
+          allowDecimals={false}
+          width={40}
+        />
         <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--accent)' }} />
         <Legend
           verticalAlign="top"
@@ -125,6 +131,8 @@ const OUTCOME_COLORS: Record<CallOutcome, string> = {
   REFUSED: 'var(--chart-4)',
   WRONG_NUMBER: 'var(--chart-6)',
   SPAM: 'var(--chart-5)',
+  VOICEMAIL: 'var(--text-muted)',
+  HUNG_UP: 'var(--border-strong)',
   NEW: 'var(--chart-7)',
 };
 
@@ -196,7 +204,13 @@ export function HourLoadChart({
           tickLine={false}
           interval={1}
         />
-        <YAxis tick={axisStyle} axisLine={false} tickLine={false} allowDecimals={false} width={40} />
+        <YAxis
+          tick={axisStyle}
+          axisLine={false}
+          tickLine={false}
+          allowDecimals={false}
+          width={40}
+        />
         <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--accent)' }} />
         <Legend
           verticalAlign="top"
@@ -206,7 +220,13 @@ export function HourLoadChart({
             <span className="text-2xs text-[var(--text-secondary)]">{value}</span>
           )}
         />
-        <Bar dataKey="total" name={ru.common.total} fill="var(--chart-1)" radius={[3, 3, 0, 0]} maxBarSize={22} />
+        <Bar
+          dataKey="total"
+          name={ru.common.total}
+          fill="var(--chart-1)"
+          radius={[3, 3, 0, 0]}
+          maxBarSize={22}
+        />
         <Bar
           dataKey="missed"
           name={ru.dashboard.kpiMissed}
@@ -235,10 +255,27 @@ export function WeekdayLoadChart({ weekdays }: { weekdays: { weekday: number; to
   return (
     <ResponsiveContainer width="100%" height={220}>
       <BarChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: -22 }}>
-        <XAxis dataKey="label" tick={axisStyle} axisLine={{ stroke: 'var(--border)' }} tickLine={false} />
-        <YAxis tick={axisStyle} axisLine={false} tickLine={false} allowDecimals={false} width={40} />
+        <XAxis
+          dataKey="label"
+          tick={axisStyle}
+          axisLine={{ stroke: 'var(--border)' }}
+          tickLine={false}
+        />
+        <YAxis
+          tick={axisStyle}
+          axisLine={false}
+          tickLine={false}
+          allowDecimals={false}
+          width={40}
+        />
         <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--accent)' }} />
-        <Bar dataKey="total" name={ru.common.total} fill="var(--chart-1)" radius={[4, 4, 0, 0]} maxBarSize={44} />
+        <Bar
+          dataKey="total"
+          name={ru.common.total}
+          fill="var(--chart-1)"
+          radius={[4, 4, 0, 0]}
+          maxBarSize={44}
+        />
       </BarChart>
     </ResponsiveContainer>
   );
@@ -260,10 +297,22 @@ export function MissedShareChart({
   return (
     <ResponsiveContainer width="100%" height={220}>
       <BarChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: -18 }}>
-        <XAxis dataKey="label" tick={axisStyle} axisLine={{ stroke: 'var(--border)' }} tickLine={false} interval={1} />
+        <XAxis
+          dataKey="label"
+          tick={axisStyle}
+          axisLine={{ stroke: 'var(--border)' }}
+          tickLine={false}
+          interval={1}
+        />
         <YAxis tick={axisStyle} axisLine={false} tickLine={false} width={44} unit="%" />
         <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--accent)' }} />
-        <Bar dataKey="share" name={ru.dashboard.kpiMissedShare} fill="var(--chart-4)" radius={[3, 3, 0, 0]} maxBarSize={22} />
+        <Bar
+          dataKey="share"
+          name={ru.dashboard.kpiMissedShare}
+          fill="var(--chart-4)"
+          radius={[3, 3, 0, 0]}
+          maxBarSize={22}
+        />
       </BarChart>
     </ResponsiveContainer>
   );

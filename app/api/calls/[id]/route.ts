@@ -1,4 +1,6 @@
-import { handleRoute, notFound } from '@/lib/api';
+import { badRequest, handleRoute, notFound } from '@/lib/api';
+import { CallResult, CallStatus } from '@prisma/client';
+import { isNoConversation } from '@/lib/call-rules';
 import { writeAudit } from '@/lib/audit';
 import { callScopeFilter, requireUser } from '@/lib/auth/rbac';
 import { prisma } from '@/lib/db';
@@ -40,9 +42,18 @@ export async function PATCH(request: Request, { params }: Params) {
         userId: true,
         summary: true,
         isImportant: true,
+        status: true,
       },
     });
     if (!existing) throw notFound('Звонок не найден или недоступен');
+    const nextOutcome = input.outcome ?? existing.outcome;
+    const nextResult = input.result === undefined ? existing.result : input.result;
+    if (isNoConversation(nextOutcome) && nextResult === CallResult.SUCCESS) {
+      throw badRequest('Без разговора звонок не может быть успешным');
+    }
+    if (isNoConversation(input.outcome) && existing.status !== CallStatus.COMPLETED) {
+      throw badRequest('Этот исход можно отметить только у звонка, на который ответили');
+    }
 
     const data: Record<string, unknown> = {};
     if (input.outcome !== undefined) data.outcome = input.outcome;
@@ -124,6 +135,9 @@ export async function PATCH(request: Request, { params }: Params) {
         entityId: id,
         meta: { from: existing.result, to: input.result },
       });
+    }
+
+    if (input.result !== undefined || input.outcome !== undefined) {
       await syncTaskCompletion(existing.userId);
     }
 

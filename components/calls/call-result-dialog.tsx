@@ -21,6 +21,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Field, Textarea } from '@/components/ui/field';
+import { isNoConversation, MIN_TALK_SECONDS } from '@/lib/call-rules';
 import { ApiRequestError } from '@/lib/client/api';
 import { usePendingResults, useSubmitCallResult } from '@/lib/client/hooks';
 import type { CallItem } from '@/lib/client/types';
@@ -42,6 +43,8 @@ const OUTCOME_RESULT: Partial<Record<CallOutcome, Result>> = {
   REFUSED: 'FAILURE',
   WRONG_NUMBER: 'FAILURE',
   SPAM: 'FAILURE',
+  VOICEMAIL: 'FAILURE',
+  HUNG_UP: 'FAILURE',
 };
 
 const OUTCOME_CHOICES: CallOutcome[] = [
@@ -51,7 +54,21 @@ const OUTCOME_CHOICES: CallOutcome[] = [
   'REFUSED',
   'WRONG_NUMBER',
   'SPAM',
+  'VOICEMAIL',
+  'HUNG_UP',
 ];
+
+/** Исходы, которые не бывают без ответа на звонок. */
+const ANSWER_ONLY: CallOutcome[] = ['VOICEMAIL', 'HUNG_UP'];
+
+/**
+ * Короткое соединение почти всегда одно из трёх. Одна кнопка вместо формы:
+ * иначе такие звонки размечают наугад, лишь бы закрыть окно.
+ */
+const QUICK_OUTCOMES: CallOutcome[] = ['VOICEMAIL', 'HUNG_UP', 'WRONG_NUMBER'];
+
+/** Разговора по сути не было — описывать нечего. */
+const NO_SUMMARY: CallOutcome[] = ['VOICEMAIL', 'HUNG_UP', 'WRONG_NUMBER'];
 
 type CallResultContextValue = {
   pendingCount: number;
@@ -182,7 +199,13 @@ function ResultForm({
   // Ошибки считаются от текущих значений: исправил поле — подсказка ушла сама
   const localErrors: Record<string, string> = {};
   if (!result) localErrors.result = 'Отметьте, успешный звонок или нет';
-  if (talked && summary.trim().length < 3) localErrors.summary = ru.callResult.summaryRequired;
+  if (talked && !outcome) localErrors.outcome = 'Укажите, с кем удалось соединиться';
+  if (isNoConversation(outcome) && result === 'SUCCESS')
+    localErrors.result = ru.callResult.voicemailHint;
+  const summaryRequired = talked && !(outcome && NO_SUMMARY.includes(outcome));
+  if (summaryRequired && summary.trim().length < 3)
+    localErrors.summary = ru.callResult.summaryRequired;
+  const short = talked && call.durationSeconds < MIN_TALK_SECONDS;
   const errors = attempted ? { ...serverErrors, ...localErrors } : serverErrors;
 
   const pickOutcome = (value: CallOutcome) => {
@@ -194,31 +217,43 @@ function ResultForm({
 
   const hasLocalErrors = Object.keys(localErrors).length > 0;
 
+  const send = React.useCallback(
+    (value: Result, chosen: CallOutcome | null) => {
+      setServerErrors({});
+      submit.mutate(
+        {
+          id: call.id,
+          result: value,
+          ...(chosen ? { outcome: chosen } : {}),
+          ...(summary.trim() ? { summary: summary.trim() } : {}),
+          isImportant: important,
+        },
+        {
+          onSuccess: () => {
+            toast.success(ru.callResult.saved);
+            onSaved();
+          },
+          onError: (error) => {
+            if (error instanceof ApiRequestError && error.fields) setServerErrors(error.fields);
+            else toast.error(error instanceof Error ? error.message : ru.errors.saveFailed);
+          },
+        },
+      );
+    },
+    [call.id, important, onSaved, submit, summary],
+  );
+
   const save = React.useCallback(() => {
     setAttempted(true);
-    setServerErrors({});
     if (!result || hasLocalErrors) return;
+    send(result, outcome);
+  }, [hasLocalErrors, outcome, result, send]);
 
-    submit.mutate(
-      {
-        id: call.id,
-        result,
-        ...(outcome ? { outcome } : {}),
-        ...(summary.trim() ? { summary: summary.trim() } : {}),
-        isImportant: important,
-      },
-      {
-        onSuccess: () => {
-          toast.success(ru.callResult.saved);
-          onSaved();
-        },
-        onError: (error) => {
-          if (error instanceof ApiRequestError && error.fields) setServerErrors(error.fields);
-          else toast.error(error instanceof Error ? error.message : ru.errors.saveFailed);
-        },
-      },
-    );
-  }, [call.id, hasLocalErrors, important, onSaved, outcome, result, submit, summary]);
+  const saveQuick = (value: CallOutcome) => {
+    setOutcome(value);
+    setResult('FAILURE');
+    send('FAILURE', value);
+  };
 
   // 1 / 2 — итог, Ctrl+Enter — сохранить. В поле резюме цифры печатаются как обычно
   const onKeyDown = (event: React.KeyboardEvent) => {
@@ -262,6 +297,29 @@ function ResultForm({
           <CallStatusBadge status={call.status} />
         </div>
 
+        {short ? (
+          <div className="rounded-lg border border-[var(--border)] p-3">
+            <p className="text-sm font-semibold text-[var(--foreground)]">
+              {ru.callResult.quickTitle(call.durationSeconds)}
+            </p>
+            <p className="text-2xs mt-0.5 text-[var(--text-muted)]">{ru.callResult.quickHint}</p>
+            <div className="mt-2.5 grid grid-cols-3 gap-2">
+              {QUICK_OUTCOMES.map((value) => (
+                <Button
+                  key={value}
+                  type="button"
+                  variant="secondary"
+                  disabled={submit.isPending}
+                  onClick={() => saveQuick(value)}
+                  className="h-11"
+                >
+                  {ru.callOutcome[value]}
+                </Button>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
         <div>
           <div
             className="grid grid-cols-2 gap-2"
@@ -299,29 +357,36 @@ function ResultForm({
             {ru.callResult.outcome}
           </p>
           <div className="flex flex-wrap gap-1.5">
-            {OUTCOME_CHOICES.map((value) => (
-              <button
-                key={value}
-                type="button"
-                aria-pressed={outcome === value}
-                onClick={() => pickOutcome(value)}
-                className={cn(
-                  'h-8 rounded-full border px-3 text-xs transition-colors max-md:h-10',
-                  outcome === value
-                    ? 'border-[var(--brand)] bg-[var(--brand-soft)] font-medium text-[var(--brand)] dark:text-[var(--brand-text)]'
-                    : 'border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--border-strong)]',
-                )}
-              >
-                {ru.callOutcome[value]}
-              </button>
-            ))}
+            {OUTCOME_CHOICES.filter((value) => talked || !ANSWER_ONLY.includes(value)).map(
+              (value) => (
+                <button
+                  key={value}
+                  type="button"
+                  aria-pressed={outcome === value}
+                  onClick={() => pickOutcome(value)}
+                  className={cn(
+                    'h-8 rounded-full border px-3 text-xs transition-colors max-md:h-10',
+                    outcome === value
+                      ? 'border-[var(--brand)] bg-[var(--brand-soft)] font-medium text-[var(--brand)] dark:text-[var(--brand-text)]'
+                      : 'border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--border-strong)]',
+                  )}
+                >
+                  {ru.callOutcome[value]}
+                </button>
+              ),
+            )}
           </div>
+          {errors.outcome ? (
+            <p role="alert" className="text-2xs mt-1.5 text-[var(--destructive)]">
+              {errors.outcome}
+            </p>
+          ) : null}
         </div>
 
         <Field
           label={ru.callResult.summary}
           htmlFor="call-summary"
-          required={talked}
+          required={summaryRequired}
           error={errors.summary}
         >
           <Textarea

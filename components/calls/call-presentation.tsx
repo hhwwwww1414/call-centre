@@ -101,6 +101,8 @@ const OUTCOME_TONE: Record<CallOutcome, BadgeProps['tone']> = {
   WRONG_NUMBER: 'outline',
   DEAL: 'success',
   SPAM: 'danger',
+  VOICEMAIL: 'neutral',
+  HUNG_UP: 'outline',
 };
 
 export function OutcomeBadge({ outcome, className }: { outcome: CallOutcome; className?: string }) {

@@ -1,9 +1,16 @@
-import { CallStatus, Role } from '@prisma/client';
+import { CallOutcome, CallStatus, Role } from '@prisma/client';
 import { createHash } from 'node:crypto';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import type { SessionUser } from '@/lib/auth/scope';
-import { canManageTasks, taskCallWhere, taskScopeFilter } from '@/lib/services/tasks';
+import {
+  MIN_RING_SECONDS,
+  MIN_TALK_SECONDS,
+  canManageTasks,
+  taskCallRejection,
+  taskCallWhere,
+  taskScopeFilter,
+} from '@/lib/services/tasks';
 import { canTransition } from '@/lib/telephony/ingest';
 import { SipuniTelephonyProvider } from '@/lib/telephony/providers/sipuni';
 
@@ -229,12 +236,73 @@ describe('задачи: права и подсчёт', () => {
       direction: 'OUTBOUND',
       startedAt: { gte: startsAt, lte: dueAt },
     });
-    expect(taskCallWhere({ ...base, metric: 'ANSWERED' }).status).toBe(CallStatus.COMPLETED);
-    expect(taskCallWhere({ ...base, metric: 'SUCCESSFUL' }).result).toBe('SUCCESS');
-    // Звонок, который ещё идёт, в «совершённые» не попадает
-    const calls = taskCallWhere({ ...base, metric: 'CALLS' }).status as { in: CallStatus[] };
-    expect(calls.in).not.toContain(CallStatus.RINGING);
-    expect(calls.in).not.toContain(CallStatus.IN_PROGRESS);
+  });
+
+  describe('зачёт звонка', () => {
+    const talk = {
+      status: CallStatus.COMPLETED,
+      outcome: CallOutcome.INTERESTED,
+      result: 'SUCCESS' as const,
+      resultAt: new Date(),
+      durationSeconds: 45,
+      waitSeconds: 8,
+    };
+    const ok = (metric: 'CALLS' | 'ANSWERED' | 'SUCCESSFUL', call: typeof talk | object) =>
+      taskCallRejection(metric, { ...talk, ...call }) === null;
+
+    it('автоответчик не засчитывается ни в одну метрику', () => {
+      for (const metric of ['CALLS', 'ANSWERED', 'SUCCESSFUL'] as const) {
+        expect(ok(metric, { outcome: CallOutcome.VOICEMAIL, result: 'FAILURE' })).toBe(false);
+      }
+    });
+
+    it('«Сбросили» — попытка, но не разговор', () => {
+      const hungUp = { outcome: CallOutcome.HUNG_UP, result: 'FAILURE' };
+      expect(ok('CALLS', hungUp)).toBe(true);
+      expect(ok('ANSWERED', hungUp)).toBe(false);
+    });
+
+    it('соединение без итога менеджера или без исхода не засчитывается', () => {
+      expect(ok('ANSWERED', { resultAt: null })).toBe(false);
+      expect(ok('CALLS', { outcome: CallOutcome.NEW })).toBe(false);
+      expect(ok('ANSWERED', {})).toBe(true);
+    });
+
+    it('короткое соединение не считается разговором, но считается попыткой', () => {
+      expect(ok('ANSWERED', { durationSeconds: MIN_TALK_SECONDS - 1 })).toBe(false);
+      expect(ok('SUCCESSFUL', { durationSeconds: MIN_TALK_SECONDS - 1 })).toBe(false);
+      expect(ok('CALLS', { durationSeconds: 3 })).toBe(true);
+    });
+
+    it('недозвон — попытка, только если ждали ответа', () => {
+      const noAnswer = { status: CallStatus.NO_ANSWER, outcome: CallOutcome.NEW, resultAt: null };
+      expect(ok('CALLS', { ...noAnswer, waitSeconds: 30 })).toBe(true);
+      expect(ok('CALLS', { ...noAnswer, waitSeconds: MIN_RING_SECONDS - 1 })).toBe(false);
+      expect(ok('CALLS', { ...noAnswer, status: CallStatus.CANCELED, waitSeconds: 2 })).toBe(false);
+      expect(ok('CALLS', { ...noAnswer, status: CallStatus.BUSY, waitSeconds: 2 })).toBe(true);
+      expect(ok('CALLS', { ...noAnswer, status: CallStatus.FAILED })).toBe(false);
+      expect(ok('ANSWERED', { ...noAnswer, waitSeconds: 30 })).toBe(false);
+    });
+
+    it('идущий звонок не засчитывается', () => {
+      expect(ok('CALLS', { status: CallStatus.RINGING })).toBe(false);
+      expect(ok('CALLS', { status: CallStatus.IN_PROGRESS })).toBe(false);
+    });
+
+    it('«успешные» требуют отметки «Успешный»', () => {
+      expect(ok('SUCCESSFUL', { result: 'FAILURE' })).toBe(false);
+      expect(ok('SUCCESSFUL', {})).toBe(true);
+    });
+  });
+});
+
+describe('итог звонка без разговора', () => {
+  it('автоответчик и «Сбросили» не бывают успешными', async () => {
+    const { callResultSchema } = await import('@/lib/validation');
+    for (const outcome of ['VOICEMAIL', 'HUNG_UP']) {
+      expect(callResultSchema.safeParse({ result: 'SUCCESS', outcome }).success).toBe(false);
+      expect(callResultSchema.safeParse({ result: 'FAILURE', outcome }).success).toBe(true);
+    }
   });
 });
 

@@ -19,6 +19,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, SheetContent } from '@/components/ui/dialog';
+import { isNoConversation } from '@/lib/call-rules';
 import { Field, Input, Label, Textarea } from '@/components/ui/field';
 import { EmptyState, Separator, Skeleton } from '@/components/ui/misc';
 import {
@@ -305,13 +306,10 @@ export function CallEditors({
       <OutcomeEditor
         value={call.outcome}
         onChange={(outcome) => {
-          update.mutate(
-            { outcome },
-            {
-              onError: () =>
-                toast.error(ru.errors.saveFailed, { description: ru.errors.saveFailedHint }),
-            },
-          );
+          update.mutate(isNoConversation(outcome) ? { outcome, result: 'FAILURE' } : { outcome }, {
+            onError: () =>
+              toast.error(ru.errors.saveFailed, { description: ru.errors.saveFailedHint }),
+          });
         }}
         saving={update.isPending}
       />

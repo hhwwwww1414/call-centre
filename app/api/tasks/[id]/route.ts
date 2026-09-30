@@ -1,6 +1,6 @@
 import { TaskStatus } from '@prisma/client';
 
-import { handleRoute, notFound } from '@/lib/api';
+import { badRequest, handleRoute, notFound } from '@/lib/api';
 import { writeAudit } from '@/lib/audit';
 import { AuthError, requireUser } from '@/lib/auth/rbac';
 import { prisma } from '@/lib/db';
@@ -29,6 +29,11 @@ export async function PATCH(request: Request, { params }: Params) {
 
     const { id } = await params;
     const input = taskUpdateSchema.parse(await request.json());
+    if (input.status === TaskStatus.COMPLETED) {
+      throw badRequest(
+        'Задача завершается автоматически, когда подтверждённый прогресс достигает цели',
+      );
+    }
 
     const existing = await prisma.task.findUnique({
       where: { id },
@@ -43,7 +48,7 @@ export async function PATCH(request: Request, { params }: Params) {
     if (input.dueAt !== undefined) data.dueAt = input.dueAt ? new Date(input.dueAt) : null;
     if (input.status !== undefined && input.status !== existing.status) {
       data.status = input.status;
-      data.completedAt = input.status === TaskStatus.COMPLETED ? new Date() : null;
+      data.completedAt = null;
     }
 
     await prisma.task.update({ where: { id }, data });

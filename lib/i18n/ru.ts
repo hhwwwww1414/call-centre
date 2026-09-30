@@ -1,3 +1,4 @@
+import { MIN_RING_SECONDS, MIN_TALK_SECONDS } from '@/lib/call-rules';
 import { plural } from '@/lib/utils';
 
 /**
@@ -204,7 +205,10 @@ export const ru = {
     success: 'Успешный',
     successHint: 'Договорились, есть интерес или следующий шаг',
     failure: 'Неуспешный',
-    failureHint: 'Отказ, не дозвонились или не тот человек',
+    failureHint: 'Отказ, сбросили, автоответчик или не тот человек',
+    voicemailHint: 'Без разговора звонок не может быть успешным',
+    quickTitle: (seconds: number) => `Соединение ${seconds} с — что это было?`,
+    quickHint: 'Сохраняется одним нажатием. Если был разговор — заполните итог ниже',
     outcome: 'Что получилось',
     summary: 'Резюме разговора',
     summaryPlaceholder: 'О чём договорились, что важно помнить, следующий шаг',
@@ -291,9 +295,9 @@ export const ru = {
   },
 
   taskMetricHint: {
-    CALLS: 'Любой завершённый исходящий звонок',
-    ANSWERED: 'Исходящий, на который ответили',
-    SUCCESSFUL: 'Менеджер отметил итог «Успешный»',
+    CALLS: `Исходящий, где ждали ответа от ${MIN_RING_SECONDS} с или соединились и указали итог. Автоответчик не считается`,
+    ANSWERED: `Разговор с человеком от ${MIN_TALK_SECONDS} с с указанным итогом. Автоответчик и «Сбросили» не считаются`,
+    SUCCESSFUL: `Разговор с человеком от ${MIN_TALK_SECONDS} с, отмеченный как успешный`,
   },
 
   taskStatus: {
@@ -326,6 +330,8 @@ export const ru = {
     WRONG_NUMBER: 'Не тот номер',
     DEAL: 'Сделка',
     SPAM: 'Спам',
+    VOICEMAIL: 'Автоответчик',
+    HUNG_UP: 'Сбросили',
   },
 
   contacts: {

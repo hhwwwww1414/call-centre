@@ -1,15 +1,18 @@
 import {
   CallDirection,
+  CallOutcome,
   CallResult,
   CallStatus,
   Role,
   TaskMetric,
   TaskStatus,
+  type Call,
   type Prisma,
   type Task,
 } from '@prisma/client';
 
 import type { SessionUser } from '@/lib/auth/scope';
+import { MIN_RING_SECONDS, MIN_TALK_SECONDS } from '@/lib/call-rules';
 import { prisma } from '@/lib/db';
 import { logger } from '@/lib/logger';
 
@@ -25,55 +28,96 @@ export function taskScopeFilter(user: SessionUser, requestedUserId?: string | nu
   return {};
 }
 
-const FINISHED_STATUSES: CallStatus[] = [
-  CallStatus.COMPLETED,
-  CallStatus.MISSED,
-  CallStatus.NO_ANSWER,
-  CallStatus.BUSY,
-  CallStatus.FAILED,
-  CallStatus.CANCELED,
-];
+export { MIN_RING_SECONDS, MIN_TALK_SECONDS } from '@/lib/call-rules';
 
 type TaskWindow = Pick<Task, 'assigneeId' | 'metric' | 'startsAt' | 'dueAt'>;
 
-/**
- * Какие звонки засчитываются в задачу. Считаем исходящие звонки исполнителя
- * внутри окна задачи — менеджеру не нужно ничего отмечать руками, счётчик
- * растёт сам по событиям телефонии.
- */
+/** Все исходящие исполнителя внутри окна задачи — кандидаты в прогресс. */
 export function taskCallWhere(task: TaskWindow): Prisma.CallWhereInput {
-  const where: Prisma.CallWhereInput = {
+  return {
     userId: task.assigneeId,
     direction: CallDirection.OUTBOUND,
     startedAt: { gte: task.startsAt, ...(task.dueAt ? { lte: task.dueAt } : {}) },
   };
-
-  switch (task.metric) {
-    case TaskMetric.CALLS:
-      where.status = { in: FINISHED_STATUSES };
-      break;
-    case TaskMetric.ANSWERED:
-      where.status = CallStatus.COMPLETED;
-      break;
-    case TaskMetric.SUCCESSFUL:
-      where.result = CallResult.SUCCESS;
-      break;
-  }
-
-  return where;
 }
 
+export type TaskCallFacts = Pick<
+  Call,
+  'status' | 'outcome' | 'result' | 'resultAt' | 'durationSeconds' | 'waitSeconds'
+>;
+
 /**
- * «Обзвонить 30 человек» — это 30 разных номеров, а не 30 попыток
- * дозвониться до одного. Поэтому считаем уникальные номера.
+ * Почему звонок не идёт в зачёт задачи (null — идёт). Единственное место,
+ * где описаны правила: по нему считается прогресс и объясняется хронология.
  */
-export async function countTaskProgress(task: TaskWindow): Promise<number> {
+export function taskCallRejection(metric: TaskMetric, call: TaskCallFacts): string | null {
+  if (call.status === CallStatus.RINGING || call.status === CallStatus.IN_PROGRESS) {
+    return 'Звонок ещё идёт';
+  }
+  if (call.status === CallStatus.FAILED) return 'Вызов не состоялся: сбой АТС или неверный номер';
+
+  if (call.status !== CallStatus.COMPLETED) {
+    if (metric !== TaskMetric.CALLS) return 'Не дозвонились';
+    const earlyDrop =
+      (call.status === CallStatus.CANCELED || call.status === CallStatus.NO_ANSWER) &&
+      call.waitSeconds !== null &&
+      call.waitSeconds < MIN_RING_SECONDS;
+    return earlyDrop
+      ? `Сброшен через ${call.waitSeconds} с — нужно ждать ответа от ${MIN_RING_SECONDS} с`
+      : null;
+  }
+
+  // Соединение было, но с кем — знает только менеджер: без итога не засчитываем
+  if (!call.resultAt) return 'Ожидает итога менеджера';
+  if (call.outcome === CallOutcome.VOICEMAIL) return 'Автоответчик — разговора не было';
+  if (call.outcome === CallOutcome.NEW) return 'Не указано, с кем соединились';
+  if (metric === TaskMetric.CALLS) return null;
+
+  // Человек ответил и сразу бросил трубку — попытка есть, разговора нет
+  if (call.outcome === CallOutcome.HUNG_UP) return 'Клиент сбросил — разговора не было';
+
+  if (call.durationSeconds < MIN_TALK_SECONDS) {
+    return `Разговор ${call.durationSeconds} с — короче ${MIN_TALK_SECONDS} с`;
+  }
+  if (metric === TaskMetric.SUCCESSFUL && call.result !== CallResult.SUCCESS) {
+    return 'Итог не «Успешный»';
+  }
+  return null;
+}
+
+const TASK_CALL_FACTS = {
+  id: true,
+  toNumber: true,
+  status: true,
+  outcome: true,
+  result: true,
+  resultAt: true,
+  durationSeconds: true,
+  waitSeconds: true,
+} satisfies Prisma.CallSelect;
+
+/**
+ * Какие звонки засчитаны. «Обзвонить 30 человек» — это 30 разных номеров,
+ * а не 30 попыток до одного: по каждому номеру зачтён первый подходящий звонок.
+ */
+export async function creditedTaskCallIds(task: TaskWindow): Promise<Set<string>> {
   const rows = await prisma.call.findMany({
     where: taskCallWhere(task),
-    distinct: ['toNumber'],
-    select: { id: true },
+    orderBy: [{ startedAt: 'asc' }, { id: 'asc' }],
+    select: TASK_CALL_FACTS,
   });
-  return rows.length;
+  const numbers = new Set<string>();
+  const credited = new Set<string>();
+  for (const call of rows) {
+    if (numbers.has(call.toNumber) || taskCallRejection(task.metric, call)) continue;
+    numbers.add(call.toNumber);
+    credited.add(call.id);
+  }
+  return credited;
+}
+
+export async function countTaskProgress(task: TaskWindow): Promise<number> {
+  return (await creditedTaskCallIds(task)).size;
 }
 
 export const TASK_SELECT = {
@@ -110,6 +154,13 @@ async function toView(task: TaskRow, now: Date): Promise<TaskView> {
     current = await prisma.task.update({
       where: { id: task.id },
       data: { status: TaskStatus.COMPLETED, completedAt: now },
+      select: TASK_SELECT,
+    });
+  }
+  if (task.status === TaskStatus.COMPLETED && progress < task.target) {
+    current = await prisma.task.update({
+      where: { id: task.id },
+      data: { status: TaskStatus.ACTIVE, completedAt: null },
       select: TASK_SELECT,
     });
   }
@@ -229,7 +280,7 @@ export async function syncTaskCompletion(userId: string | null | undefined): Pro
   if (!userId) return;
   try {
     const active = await prisma.task.findMany({
-      where: { assigneeId: userId, status: TaskStatus.ACTIVE },
+      where: { assigneeId: userId, status: { in: [TaskStatus.ACTIVE, TaskStatus.COMPLETED] } },
       select: {
         id: true,
         assigneeId: true,
@@ -243,11 +294,17 @@ export async function syncTaskCompletion(userId: string | null | undefined): Pro
     for (const task of active) {
       const progress = await countTaskProgress(task);
       if (progress >= task.target) {
-        await prisma.task.updateMany({
+        const updated = await prisma.task.updateMany({
           where: { id: task.id, status: TaskStatus.ACTIVE },
           data: { status: TaskStatus.COMPLETED, completedAt: new Date() },
         });
-        logger.info({ taskId: task.id, userId, progress }, 'task completed automatically');
+        if (updated.count)
+          logger.info({ taskId: task.id, userId, progress }, 'task completed automatically');
+      } else {
+        await prisma.task.updateMany({
+          where: { id: task.id, status: TaskStatus.COMPLETED },
+          data: { status: TaskStatus.ACTIVE, completedAt: null },
+        });
       }
       // Промежуточный прогресс отдельно не рассылаем: клиенты и так получают
       // событие звонка по SSE и перезапрашивают задачи

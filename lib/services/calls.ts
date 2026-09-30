@@ -1,4 +1,4 @@
-import { CallStatus, type Prisma } from '@prisma/client';
+import { CallOutcome, CallStatus, type Prisma } from '@prisma/client';
 
 import { callScopeFilter, type SessionUser } from '@/lib/auth/rbac';
 import { prisma } from '@/lib/db';
@@ -151,7 +151,13 @@ export async function getCallForUser(user: SessionUser, callId: string) {
   return { call, history };
 }
 
-const ANSWERED: CallStatus[] = [CallStatus.COMPLETED, CallStatus.IN_PROGRESS];
+// Дозвон — факт телефонии: так входящие и нераспределённые звонки не пропадают
+// из статистики, пока менеджер не разметил итог. Автоответчик АТС видит как
+// ответ, поэтому отмеченные им соединения исключаем
+const CONFIRMED_CONVERSATION: Prisma.CallWhereInput = {
+  status: CallStatus.COMPLETED,
+  outcome: { not: CallOutcome.VOICEMAIL },
+};
 const MISSED: CallStatus[] = [CallStatus.MISSED, CallStatus.NO_ANSWER];
 
 export type CallKpi = {
@@ -167,10 +173,10 @@ export type CallKpi = {
 export async function getKpi(where: Prisma.CallWhereInput): Promise<CallKpi> {
   const [total, answered, missed, aggregates] = await Promise.all([
     prisma.call.count({ where }),
-    prisma.call.count({ where: { ...where, status: { in: ANSWERED } } }),
+    prisma.call.count({ where: { ...where, ...CONFIRMED_CONVERSATION } }),
     prisma.call.count({ where: { ...where, status: { in: MISSED } } }),
     prisma.call.aggregate({
-      where: { ...where, status: CallStatus.COMPLETED },
+      where: { ...where, ...CONFIRMED_CONVERSATION },
       _avg: { durationSeconds: true, waitSeconds: true },
       _sum: { durationSeconds: true },
     }),
@@ -255,13 +261,13 @@ export async function getManagerBreakdown(where: Prisma.CallWhereInput) {
       by: ['userId'],
       where,
       _count: { _all: true },
-      _sum: { durationSeconds: true },
-      _avg: { durationSeconds: true, waitSeconds: true },
     }),
     prisma.call.groupBy({
       by: ['userId'],
-      where: { ...where, status: { in: ANSWERED } },
+      where: { ...where, ...CONFIRMED_CONVERSATION },
       _count: { _all: true },
+      _sum: { durationSeconds: true },
+      _avg: { durationSeconds: true, waitSeconds: true },
     }),
     prisma.call.groupBy({
       by: ['userId'],
@@ -275,7 +281,7 @@ export async function getManagerBreakdown(where: Prisma.CallWhereInput) {
   ]);
 
   const nameById = new Map(users.map((u) => [u.id, u]));
-  const answeredById = new Map(answered.map((r) => [r.userId, r._count._all]));
+  const answeredById = new Map(answered.map((r) => [r.userId, r]));
   const missedById = new Map(missed.map((r) => [r.userId, r._count._all]));
 
   return grouped
@@ -283,18 +289,19 @@ export async function getManagerBreakdown(where: Prisma.CallWhereInput) {
       const user = row.userId ? nameById.get(row.userId) : undefined;
       const total = row._count._all;
       const missedCount = missedById.get(row.userId) ?? 0;
+      const conversation = answeredById.get(row.userId);
       return {
         userId: row.userId,
         name: user?.name ?? null,
         extension: user?.extension ?? null,
         isActive: user?.isActive ?? true,
         total,
-        answered: answeredById.get(row.userId) ?? 0,
+        answered: conversation?._count._all ?? 0,
         missed: missedCount,
         missedShare: total > 0 ? Number(((missedCount / total) * 100).toFixed(1)) : 0,
-        avgDurationSeconds: Math.round(row._avg.durationSeconds ?? 0),
-        avgWaitSeconds: Math.round(row._avg.waitSeconds ?? 0),
-        talkTimeSeconds: row._sum.durationSeconds ?? 0,
+        avgDurationSeconds: Math.round(conversation?._avg.durationSeconds ?? 0),
+        avgWaitSeconds: Math.round(conversation?._avg.waitSeconds ?? 0),
+        talkTimeSeconds: conversation?._sum.durationSeconds ?? 0,
       };
     })
     .sort((a, b) => b.total - a.total);
@@ -331,7 +338,13 @@ export async function getRecentCalls(user: SessionUser, limit = 5) {
  * админу окно итога показывает его собственные разговоры.
  */
 export async function getPendingResults(user: SessionUser, limit = 20) {
-  const where = { userId: user.id, resultRequired: true, result: null };
+  // Только соединившиеся: недозвоны получают итог автоматически
+  const where = {
+    userId: user.id,
+    resultRequired: true,
+    result: null,
+    status: CallStatus.COMPLETED,
+  };
   const [items, total] = await Promise.all([
     prisma.call.findMany({
       where,

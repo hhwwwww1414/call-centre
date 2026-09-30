@@ -17,6 +17,7 @@ import type {
   CallListResponse,
   PendingResultsResponse,
   TaskItem,
+  TaskActivityResponse,
   TaskListResponse,
   ContactDetailsResponse,
   ContactHistoryView,
@@ -61,6 +62,7 @@ export function useUpdateCall(id: string) {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['calls'] });
       void queryClient.invalidateQueries({ queryKey: ['stats'] });
+      void queryClient.invalidateQueries({ queryKey: ['tasks'] });
       void queryClient.invalidateQueries({ queryKey: ['contacts'] });
       void queryClient.invalidateQueries({ queryKey: ['audit'] });
     },
@@ -113,6 +115,19 @@ export function useTasks(params: { status: string; userId?: string | undefined }
   return useQuery({
     queryKey: ['tasks', params],
     queryFn: () => apiFetch<TaskListResponse>(`/api/tasks${buildQuery(params)}`),
+  });
+}
+
+export function useTaskActivity(id: string | null) {
+  return useInfiniteQuery({
+    queryKey: ['tasks', 'activity', id],
+    initialPageParam: undefined as string | undefined,
+    queryFn: ({ pageParam }) =>
+      apiFetch<TaskActivityResponse>(
+        `/api/tasks/${id}/activity${buildQuery({ cursor: pageParam })}`,
+      ),
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+    enabled: Boolean(id),
   });
 }
 

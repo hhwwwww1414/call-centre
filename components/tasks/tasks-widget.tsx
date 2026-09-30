@@ -65,15 +65,23 @@ export function TasksWidget({ role, timezone }: { role: Role; timezone: string }
             {rows.slice(0, LIMIT).map((row) => (
               <li key={row.key} className="flex flex-col gap-1.5">
                 <div className="flex items-baseline justify-between gap-3">
-                  <span className="truncate text-xs font-medium text-[var(--foreground)]">
+                  <Link
+                    href={`/tasks#task=${row.head.id}`}
+                    className="truncate text-xs font-medium text-[var(--foreground)] hover:underline"
+                  >
                     {row.title}
-                  </span>
+                  </Link>
                   <span className="numeric shrink-0 text-xs font-semibold text-[var(--foreground)]">
                     {row.progress}
                     <span className="font-normal text-[var(--text-muted)]"> / {row.target}</span>
                   </span>
                 </div>
-                <ProgressBar value={row.percent} tone={taskTone(row.head)} label={row.title} />
+                <Link
+                  href={`/tasks#task=${row.head.id}`}
+                  aria-label={`Хронология задачи: ${row.title}`}
+                >
+                  <ProgressBar value={row.percent} tone={taskTone(row.head)} label={row.title} />
+                </Link>
                 <div className="text-2xs flex items-center justify-between gap-2 text-[var(--text-muted)]">
                   <span className="truncate">{row.caption}</span>
                   <span className="flex shrink-0 items-center gap-1">

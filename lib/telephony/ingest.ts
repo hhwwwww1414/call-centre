@@ -1,4 +1,4 @@
-import { CallDirection, CallStatus, type Call } from '@prisma/client';
+import { CallDirection, CallResult, CallStatus, type Call } from '@prisma/client';
 
 import { prisma } from '@/lib/db';
 import { logger } from '@/lib/logger';
@@ -42,16 +42,24 @@ export async function ingestCallEvent(event: NormalizedCallEvent, provider: stri
 
   const existing = await prisma.call.findUnique({
     where: { externalId: event.externalId },
-    select: { status: true, userId: true },
+    select: { status: true, userId: true, result: true, resultAt: true },
   });
 
-  // Менеджер размечает итог: любой завершённый исходящий и принятый входящий.
-  // Пропущенный входящий размечать нечего — разговора не было. Менеджер мог
-  // определиться на раннем событии, а финальное пришло уже без добавочного
-  const needsResult =
-    Boolean(userId ?? existing?.userId) &&
+  // Итог спрашиваем только там, где был ответ, — входящий или исходящий.
+  // Недозвон АТС уже описала сама: окно на каждый из них приучило бы менеджера
+  // щёлкать не глядя. Менеджер мог определиться на раннем событии, а финальное
+  // пришло уже без добавочного
+  const hasManager = Boolean(userId ?? existing?.userId);
+  const needsResult = hasManager && event.status === CallStatus.COMPLETED;
+  const autoFailure =
+    hasManager &&
     isTerminal(event.status) &&
-    (event.direction === CallDirection.OUTBOUND || event.status === CallStatus.COMPLETED);
+    event.status !== CallStatus.COMPLETED &&
+    event.direction === CallDirection.OUTBOUND &&
+    !existing?.result;
+  // Автоматический «Неуспешный» ставится без resultAt. Если звонок всё же
+  // соединился, снимаем его, чтобы менеджер разметил разговор сам
+  const dropAutoResult = needsResult && existing?.result != null && existing.resultAt === null;
 
   // Провайдеры не гарантируют порядок доставки, а АТС шлёт события по каждому
   // плечу звонка. Запоздавший «дозвон» или «не ответил» от второго сотрудника
@@ -60,7 +68,12 @@ export async function ingestCallEvent(event: NormalizedCallEvent, provider: stri
   // externalId — ключ идемпотентности: повторный вебхук обновляет, не дублирует
   const call = await prisma.call.upsert({
     where: { externalId: event.externalId },
-    create: { externalId: event.externalId, ...data, resultRequired: needsResult },
+    create: {
+      externalId: event.externalId,
+      ...data,
+      resultRequired: needsResult,
+      ...(autoFailure ? { result: CallResult.FAILURE } : {}),
+    },
     update: staleEvent
       ? {}
       : {
@@ -75,6 +88,8 @@ export async function ingestCallEvent(event: NormalizedCallEvent, provider: stri
           // Менеджер мог определиться только на втором событии
           ...(userId ? { userId } : {}),
           ...(needsResult ? { resultRequired: true } : {}),
+          ...(autoFailure ? { result: CallResult.FAILURE } : {}),
+          ...(dropAutoResult ? { result: null } : {}),
           contactId: data.contactId,
           rawPayload: data.rawPayload,
         },

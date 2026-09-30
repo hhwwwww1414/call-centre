@@ -1,5 +1,7 @@
-import { handleRoute, notFound } from '@/lib/api';
+import { badRequest, handleRoute, notFound } from '@/lib/api';
+import { CallOutcome, CallStatus } from '@prisma/client';
 import { writeAudit } from '@/lib/audit';
+import { isNoConversation } from '@/lib/call-rules';
 import { callScopeFilter, requireUser } from '@/lib/auth/rbac';
 import { prisma } from '@/lib/db';
 import { syncTaskCompletion } from '@/lib/services/tasks';
@@ -19,9 +21,18 @@ export async function POST(request: Request, { params }: Params) {
 
     const existing = await prisma.call.findFirst({
       where: { id, ...callScopeFilter(user) },
-      select: { id: true, userId: true, result: true },
+      select: { id: true, userId: true, result: true, status: true },
     });
     if (!existing) throw notFound('Звонок не найден или недоступен');
+    if (
+      existing.status === CallStatus.COMPLETED &&
+      (!input.outcome || input.outcome === CallOutcome.NEW)
+    ) {
+      throw badRequest('Укажите исход соединения: разговор с человеком или автоответчик');
+    }
+    if (existing.status !== CallStatus.COMPLETED && isNoConversation(input.outcome)) {
+      throw badRequest('Этот исход можно отметить только у звонка, на который ответили');
+    }
 
     const call = await prisma.call.update({
       where: { id },

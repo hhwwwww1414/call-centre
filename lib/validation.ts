@@ -10,6 +10,7 @@ import {
 import { z } from 'zod';
 
 import { MIN_PASSWORD_LENGTH } from '@/lib/auth/password';
+import { isNoConversation } from '@/lib/call-rules';
 import { isValidPhone, toE164 } from '@/lib/phone';
 
 /** Одна схема на клиент и сервер (ТЗ 1). */
@@ -71,12 +72,17 @@ export const callUpdateSchema = z.object({
 });
 
 /** Итог звонка из всплывающего окна: результат обязателен, резюме — по ситуации. */
-export const callResultSchema = z.object({
-  result: z.nativeEnum(CallResult, { message: 'Отметьте, успешный звонок или нет' }),
-  outcome: z.nativeEnum(CallOutcome).optional(),
-  summary: z.string().trim().max(4000, 'Резюме длиннее 4000 символов').optional(),
-  isImportant: z.boolean().default(false),
-});
+export const callResultSchema = z
+  .object({
+    result: z.nativeEnum(CallResult, { message: 'Отметьте, успешный звонок или нет' }),
+    outcome: z.nativeEnum(CallOutcome).optional(),
+    summary: z.string().trim().max(4000, 'Резюме длиннее 4000 символов').optional(),
+    isImportant: z.boolean().default(false),
+  })
+  .refine((v) => !isNoConversation(v.outcome) || v.result === CallResult.FAILURE, {
+    path: ['result'],
+    message: 'Без разговора звонок не может быть успешным',
+  });
 
 const isoDate = z.string().datetime({ offset: true, message: 'Проверьте дату' });
 
