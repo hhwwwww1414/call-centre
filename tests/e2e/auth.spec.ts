@@ -69,6 +69,12 @@ test.describe('Вход и доступ', () => {
     }
   });
 
+  test('API приглашения доступен без входа', async ({ request }) => {
+    const response = await request.get('/api/invite/invalid-token');
+    expect(response.status()).toBe(410);
+    expect((await response.json()).error).toBe('invite_invalid');
+  });
+
   test('админ входит и попадает на дашборд', async ({ page }) => {
     test.skip(!requireCredentials(ADMIN), 'не заданы E2E_ADMIN_EMAIL / E2E_ADMIN_PASSWORD');
 

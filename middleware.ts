@@ -5,7 +5,14 @@ import { authConfig } from '@/auth.config';
 
 const { auth } = NextAuth(authConfig);
 
-const PUBLIC_PREFIXES = ['/login', '/invite', '/api/auth', '/api/health', '/api/webhooks'];
+const PUBLIC_PREFIXES = [
+  '/login',
+  '/invite',
+  '/api/invite',
+  '/api/auth',
+  '/api/health',
+  '/api/webhooks',
+];
 
 function isPublic(pathname: string): boolean {
   return PUBLIC_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
@@ -58,5 +65,7 @@ export default auth((req) => {
 });
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|mp3|ico)$).*)'],
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|mp3|ico)$).*)',
+  ],
 };

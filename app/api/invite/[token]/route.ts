@@ -52,16 +52,20 @@ export async function POST(request: Request, { params }: Params) {
 
     const invite = await findLiveInvite(input.token);
 
-    await prisma.$transaction([
-      prisma.user.update({
+    const passwordHash = await hashPassword(input.password);
+    // Ссылка одноразовая и при двух одновременных отправках: гасим её условно,
+    // и пароль меняет только тот запрос, который успел первым
+    await prisma.$transaction(async (tx) => {
+      const claimed = await tx.invite.updateMany({
+        where: { id: invite.id, usedAt: null },
+        data: { usedAt: new Date() },
+      });
+      if (claimed.count !== 1) throw invalidInvite();
+      await tx.user.update({
         where: { id: invite.user.id },
-        data: {
-          passwordHash: await hashPassword(input.password),
-          mustChangePassword: false,
-        },
-      }),
-      prisma.invite.update({ where: { id: invite.id }, data: { usedAt: new Date() } }),
-    ]);
+        data: { passwordHash, mustChangePassword: false },
+      });
+    });
 
     await writeAuditRaw({
       actorId: invite.user.id,
