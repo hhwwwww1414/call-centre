@@ -7,6 +7,12 @@ import * as React from 'react';
 
 import { DirectionIcon } from '@/components/calls/call-presentation';
 import { ContactCreateDialog } from '@/components/contacts/contact-create-dialog';
+import {
+  clearListPosition,
+  readListPosition,
+  restoreScroll,
+  saveListPosition,
+} from '@/components/contacts/list-position';
 import { MarketplaceTag, SEGMENT_LABEL } from '@/components/contacts/marketplace-panel';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -34,9 +40,9 @@ export function ContactsScreen({ timezone, role }: { timezone: string; role: Rol
   const canAssign = role === 'ADMIN' || role === 'SUPERVISOR';
   const router = useRouter();
   const query = useSearchParams();
-  const [search, setSearch] = React.useState('');
-  const [onlyBlocked, setOnlyBlocked] = React.useState(false);
-  // Фильтры можно передать ссылкой — например, из настроек «без ответственного»
+  // Фильтры живут в адресе: «Назад» из карточки клиента возвращает тот же список
+  const [search, setSearch] = React.useState(query.get('q') ?? '');
+  const [onlyBlocked, setOnlyBlocked] = React.useState(query.get('blocked') === '1');
   const [owner, setOwner] = React.useState(query.get('owner') ?? ALL_OWNERS);
   const [segment, setSegment] = React.useState(query.get('segment') ?? ALL_SEGMENTS);
   const debounced = useDebounced(search);
@@ -58,6 +64,45 @@ export function ContactsScreen({ timezone, role }: { timezone: string; role: Rol
     useContacts(params);
 
   const contacts = data?.pages.flatMap((page) => page.items) ?? [];
+
+  const listUrl = React.useMemo(() => {
+    const next = new URLSearchParams();
+    if (debounced.trim()) next.set('q', debounced.trim());
+    if (onlyBlocked) next.set('blocked', '1');
+    if (owner !== ALL_OWNERS) next.set('owner', owner);
+    if (segment !== ALL_SEGMENTS) next.set('segment', segment);
+    const qs = next.toString();
+    return qs ? `/contacts?${qs}` : '/contacts';
+  }, [debounced, onlyBlocked, owner, segment]);
+
+  React.useEffect(() => {
+    if (window.location.pathname + window.location.search !== listUrl) {
+      router.replace(listUrl, { scroll: false });
+    }
+  }, [listUrl, router]);
+
+  const openContact = (id: string) => {
+    saveListPosition(listUrl, contacts.length, id);
+    router.push(`/contacts/${id}`);
+  };
+
+  // Вернулись из карточки клиента — догружаем те же страницы и встаём на место
+  const restoredRef = React.useRef(false);
+  React.useEffect(() => {
+    if (restoredRef.current || isLoading) return;
+    const saved = readListPosition();
+    if (!saved || saved.url !== listUrl) {
+      restoredRef.current = true;
+      return;
+    }
+    if (contacts.length < saved.rows && hasNextPage) {
+      if (!isFetchingNextPage) void fetchNextPage();
+      return;
+    }
+    restoredRef.current = true;
+    clearListPosition();
+    requestAnimationFrame(() => restoreScroll(saved.y));
+  }, [contacts.length, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, listUrl]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -173,11 +218,11 @@ export function ContactsScreen({ timezone, role }: { timezone: string; role: Rol
                       key={contact.id}
                       tabIndex={0}
                       role="button"
-                      onClick={() => router.push(`/contacts/${contact.id}`)}
+                      onClick={() => openContact(contact.id)}
                       onKeyDown={(event) => {
                         if (event.key === 'Enter' || event.key === ' ') {
                           event.preventDefault();
-                          router.push(`/contacts/${contact.id}`);
+                          openContact(contact.id);
                         }
                       }}
                       className="cursor-pointer border-b border-[var(--border)] transition-colors hover:bg-[var(--surface)]"
@@ -233,7 +278,7 @@ export function ContactsScreen({ timezone, role }: { timezone: string; role: Rol
                   key={contact.id}
                   contact={contact}
                   timezone={timezone}
-                  onOpen={() => router.push(`/contacts/${contact.id}`)}
+                  onOpen={() => openContact(contact.id)}
                 />
               ))}
             </ul>

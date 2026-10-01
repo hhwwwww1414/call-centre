@@ -52,6 +52,8 @@ describe('синхронизация с vin2win', () => {
     for (const segment of [
       'marketplace',
       'no_listings',
+      'approved',
+      'on_review',
       'rejected',
       'drafts',
       'dormant',

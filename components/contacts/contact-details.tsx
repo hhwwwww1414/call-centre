@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 
 import { CallButton } from '@/components/calls/call-button';
 import { ContactActivity } from '@/components/contacts/contact-activity';
+import { readListPosition } from '@/components/contacts/list-position';
 import { MarketplacePanel } from '@/components/contacts/marketplace-panel';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -116,7 +117,12 @@ export function ContactDetails({
           variant="ghost"
           size="sm"
           className="max-sm:basis-full max-sm:justify-start"
-          onClick={() => router.push('/contacts')}
+          onClick={() => {
+            // Пришли из списка — возвращаемся в него на то же место, иначе в начало
+            const saved = readListPosition();
+            if (saved?.contactId === contactId) router.back();
+            else router.push('/contacts');
+          }}
         >
           <ArrowLeft aria-hidden />
           {ru.common.back}

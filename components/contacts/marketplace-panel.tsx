@@ -35,8 +35,10 @@ const LINK_LABEL: Record<string, string> = {
 
 export const SEGMENT_LABEL: Record<string, string> = {
   marketplace: 'Все с vin2win',
+  approved: 'Одобрен модерацией',
+  on_review: 'На проверке модерации',
+  rejected: 'Отклонён модерацией',
   no_listings: 'Без объявлений',
-  rejected: 'Отклонён на модерации',
   drafts: 'Есть черновики',
   dormant: 'Не заходил 14+ дней',
   dealers: 'Дилеры',

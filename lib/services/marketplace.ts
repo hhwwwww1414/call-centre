@@ -320,6 +320,8 @@ export function startMarketplaceSync(): void {
 export const MARKETPLACE_SEGMENTS = [
   'marketplace',
   'no_listings',
+  'approved',
+  'on_review',
   'rejected',
   'drafts',
   'dormant',
@@ -344,6 +346,14 @@ export function marketplaceSegmentWhere(segment: MarketplaceSegment): Prisma.Con
           listingsArchived: 0,
           listingsSold: 0,
         },
+      };
+    case 'approved':
+      return {
+        marketplace: { ...base, verificationStatus: { in: ['APPROVED', 'AUTO_APPROVED'] } },
+      };
+    case 'on_review':
+      return {
+        marketplace: { ...base, verificationStatus: { in: ['PENDING', 'MANUAL_REVIEW'] } },
       };
     case 'rejected':
       return { marketplace: { ...base, verificationStatus: 'REJECTED' } };
