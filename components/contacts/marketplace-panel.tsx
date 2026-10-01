@@ -44,6 +44,21 @@ export const SEGMENT_LABEL: Record<string, string> = {
   dealers: 'Дилеры',
 };
 
+/**
+ * Цвет имени клиента по модерации на площадке: отклонён — красный,
+ * на проверке — жёлтый. Удалённых с площадки не подсвечиваем.
+ */
+export function moderationNameClass(
+  account: { verificationStatus: string | null; removedAt: string | null } | null,
+): string | undefined {
+  if (!account || account.removedAt) return undefined;
+  if (account.verificationStatus === 'REJECTED') return 'text-[var(--destructive)]';
+  if (account.verificationStatus === 'PENDING' || account.verificationStatus === 'MANUAL_REVIEW') {
+    return 'text-[var(--price-margin-badge-text)]';
+  }
+  return undefined;
+}
+
 export function VerificationBadge({ status }: { status: string | null }) {
   const view = status ? VERIFICATION[status] : null;
   return view ? <Badge tone={view.tone}>{view.label}</Badge> : null;

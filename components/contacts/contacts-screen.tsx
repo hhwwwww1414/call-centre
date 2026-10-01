@@ -13,7 +13,11 @@ import {
   restoreScroll,
   saveListPosition,
 } from '@/components/contacts/list-position';
-import { MarketplaceTag, SEGMENT_LABEL } from '@/components/contacts/marketplace-panel';
+import {
+  MarketplaceTag,
+  moderationNameClass,
+  SEGMENT_LABEL,
+} from '@/components/contacts/marketplace-panel';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -31,7 +35,7 @@ import type { ContactRow } from '@/lib/client/types';
 import { ru } from '@/lib/i18n/ru';
 import { formatPhone } from '@/lib/phone';
 import { formatInZone } from '@/lib/time';
-import { pluralWithCount } from '@/lib/utils';
+import { cn, pluralWithCount } from '@/lib/utils';
 
 const ALL_OWNERS = '__all__';
 const ALL_SEGMENTS = '__all__';
@@ -231,7 +235,13 @@ export function ContactsScreen({ timezone, role }: { timezone: string; role: Rol
                         <div className="flex items-center gap-2.5">
                           <Avatar name={contact.name ?? contact.company ?? '?'} size="sm" />
                           <span className="flex min-w-0 flex-col">
-                            <span className="truncate font-medium text-[var(--foreground)]">
+                            <span
+                              className={cn(
+                                'truncate font-medium',
+                                moderationNameClass(contact.marketplace) ??
+                                  'text-[var(--foreground)]',
+                              )}
+                            >
                               {contact.name || contact.company || 'Без имени'}
                             </span>
                             <MarketplaceTag account={contact.marketplace} />
@@ -316,7 +326,12 @@ function ContactCard({
       <button type="button" onClick={onOpen} className="flex w-full flex-col gap-1.5 p-3 text-left">
         <div className="flex items-start justify-between gap-2">
           <span className="min-w-0">
-            <span className="block truncate text-sm font-medium text-[var(--foreground)]">
+            <span
+              className={cn(
+                'block truncate text-sm font-medium',
+                moderationNameClass(contact.marketplace) ?? 'text-[var(--foreground)]',
+              )}
+            >
               {contact.name ?? formatPhone(contact.phoneE164)}
             </span>
             {contact.name ? (
