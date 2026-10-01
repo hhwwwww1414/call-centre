@@ -76,6 +76,11 @@
   --status-neutral: var(--text-muted);
   --status-neutral-soft: var(--surface-2);
 
+  /* Доступ клиента на площадке vin2win — подсветка имени в списках */
+  --access-rejected: #ef4444;
+  --access-unconfirmed: #f97316;
+  --access-pending: #ffd800;
+
   /* Диаграммы */
   --chart-1: #16a34a;
   --chart-2: #a1d5b3;

@@ -22,13 +22,13 @@ export const PROFILE_TYPE_LABEL: Record<string, string> = {
  */
 const ACCESS: Record<string, { label: string; tone: BadgeProps['tone']; name?: string }> = {
   approved: { label: 'С доступом', tone: 'success' },
-  pending: {
-    label: 'Ждёт модерации',
-    tone: 'attention',
-    name: 'text-[var(--price-margin-badge-text)]',
+  pending: { label: 'Ждёт модерации', tone: 'attention', name: 'text-[var(--access-pending)]' },
+  email_unconfirmed: {
+    label: 'Не подтвердил почту',
+    tone: 'neutral',
+    name: 'text-[var(--access-unconfirmed)]',
   },
-  email_unconfirmed: { label: 'Не подтвердил почту', tone: 'neutral' },
-  rejected: { label: 'Отклонён', tone: 'danger', name: 'text-[var(--destructive)]' },
+  rejected: { label: 'Отклонён', tone: 'danger', name: 'text-[var(--access-rejected)]' },
   restricted: { label: 'Доступ ограничен', tone: 'danger' },
   no_profile: { label: 'Без профиля продавца', tone: 'outline' },
 };
