@@ -16,13 +16,43 @@ export const PROFILE_TYPE_LABEL: Record<string, string> = {
   PRIVATE: 'Частник',
 };
 
-const VERIFICATION: Record<string, { label: string; tone: BadgeProps['tone'] }> = {
-  APPROVED: { label: 'Одобрен', tone: 'success' },
-  AUTO_APPROVED: { label: 'Одобрен', tone: 'success' },
-  REJECTED: { label: 'Отклонён', tone: 'danger' },
-  MANUAL_REVIEW: { label: 'На проверке', tone: 'attention' },
-  PENDING: { label: 'Ждёт проверки', tone: 'attention' },
+/**
+ * Доступ на площадке — те же группы, что на дашборде её админки.
+ * Пока статус не синхронизирован, опираемся на модерацию профиля.
+ */
+const ACCESS: Record<string, { label: string; tone: BadgeProps['tone']; name?: string }> = {
+  approved: { label: 'С доступом', tone: 'success' },
+  pending: {
+    label: 'Ждёт модерации',
+    tone: 'attention',
+    name: 'text-[var(--price-margin-badge-text)]',
+  },
+  email_unconfirmed: { label: 'Не подтвердил почту', tone: 'neutral' },
+  rejected: { label: 'Отклонён', tone: 'danger', name: 'text-[var(--destructive)]' },
+  restricted: { label: 'Доступ ограничен', tone: 'danger' },
+  no_profile: { label: 'Без профиля продавца', tone: 'outline' },
 };
+
+const LEGACY_ACCESS: Record<string, string> = {
+  APPROVED: 'approved',
+  AUTO_APPROVED: 'approved',
+  REJECTED: 'rejected',
+  MANUAL_REVIEW: 'pending',
+  PENDING: 'pending',
+};
+
+type AccessFields = {
+  accessStatus?: string | null;
+  verificationStatus: string | null;
+  removedAt?: string | null;
+};
+
+function accessOf(account: AccessFields): string | null {
+  return (
+    account.accessStatus ??
+    (account.verificationStatus ? (LEGACY_ACCESS[account.verificationStatus] ?? null) : null)
+  );
+}
 
 const LINK_LABEL: Record<string, string> = {
   AVITO: 'Авито',
@@ -35,9 +65,10 @@ const LINK_LABEL: Record<string, string> = {
 
 export const SEGMENT_LABEL: Record<string, string> = {
   marketplace: 'Все с vin2win',
-  approved: 'Одобрен модерацией',
-  on_review: 'На проверке модерации',
-  rejected: 'Отклонён модерацией',
+  approved: 'С доступом',
+  pending: 'Ждут модерации',
+  email_unconfirmed: 'Не подтвердили почту',
+  rejected: 'Отклонены',
   no_listings: 'Без объявлений',
   drafts: 'Есть черновики',
   dormant: 'Не заходил 14+ дней',
@@ -45,22 +76,18 @@ export const SEGMENT_LABEL: Record<string, string> = {
 };
 
 /**
- * Цвет имени клиента по модерации на площадке: отклонён — красный,
- * на проверке — жёлтый. Удалённых с площадки не подсвечиваем.
+ * Цвет имени клиента по доступу на площадке: отклонён — красный, ждёт
+ * модерации — жёлтый. Удалённых с площадки не подсвечиваем.
  */
-export function moderationNameClass(
-  account: { verificationStatus: string | null; removedAt: string | null } | null,
-): string | undefined {
+export function moderationNameClass(account: AccessFields | null): string | undefined {
   if (!account || account.removedAt) return undefined;
-  if (account.verificationStatus === 'REJECTED') return 'text-[var(--destructive)]';
-  if (account.verificationStatus === 'PENDING' || account.verificationStatus === 'MANUAL_REVIEW') {
-    return 'text-[var(--price-margin-badge-text)]';
-  }
-  return undefined;
+  const access = accessOf(account);
+  return access ? ACCESS[access]?.name : undefined;
 }
 
-export function VerificationBadge({ status }: { status: string | null }) {
-  const view = status ? VERIFICATION[status] : null;
+export function AccessBadge({ account }: { account: AccessFields }) {
+  const access = accessOf(account);
+  const view = access ? ACCESS[access] : null;
   return view ? <Badge tone={view.tone}>{view.label}</Badge> : null;
 }
 
@@ -141,7 +168,7 @@ export function MarketplacePanel({
           {account.profileType ? (
             <Badge tone="outline">{PROFILE_TYPE_LABEL[account.profileType]}</Badge>
           ) : null}
-          <VerificationBadge status={account.verificationStatus} />
+          <AccessBadge account={account} />
           {account.removedAt ? <Badge tone="danger">Удалён с площадки</Badge> : null}
         </div>
         <div className="flex gap-2">
@@ -162,7 +189,7 @@ export function MarketplacePanel({
         </div>
       </CardHeader>
       <CardContent className="flex flex-col gap-5">
-        {account.verificationStatus === 'REJECTED' && account.moderationNote ? (
+        {accessOf(account) === 'rejected' && account.moderationNote ? (
           <p className="rounded-[10px] bg-[var(--destructive-soft)] px-3 py-2 text-xs text-[var(--destructive)]">
             {account.moderationNote}
           </p>
@@ -199,6 +226,7 @@ export function MarketplacePanel({
             {account.profileCompleteness != null ? `${account.profileCompleteness}%` : '—'}
           </Fact>
           <Fact label="Телефон">{account.phoneVerified ? 'подтверждён' : 'не подтверждён'}</Fact>
+          <Fact label="Почта">{account.emailVerified ? 'подтверждена' : 'не подтверждена'}</Fact>
           <Fact label="ID на площадке">{account.publicId}</Fact>
           {account.legalName ? <Fact label="Юрлицо">{account.legalName}</Fact> : null}
           {account.email ? <Fact label="Email">{account.email}</Fact> : null}

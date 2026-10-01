@@ -236,16 +236,20 @@ export const contactFiltersSchema = z.object({
   onlyBlocked: z.coerce.boolean().optional(),
   /** Сегмент базы vin2win: marketplace, no_listings, rejected, drafts, dormant, dealers */
   segment: z
-    .enum([
-      'marketplace',
-      'no_listings',
-      'approved',
-      'on_review',
-      'rejected',
-      'drafts',
-      'dormant',
-      'dealers',
-    ])
+    .preprocess(
+      (value) => (value === 'on_review' ? 'pending' : value),
+      z.enum([
+        'marketplace',
+        'no_listings',
+        'approved',
+        'pending',
+        'email_unconfirmed',
+        'rejected',
+        'drafts',
+        'dormant',
+        'dealers',
+      ]),
+    )
     .optional(),
   cursor: z.string().optional(),
   limit: z.coerce.number().int().min(1).max(100).default(50),

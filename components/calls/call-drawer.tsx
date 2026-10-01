@@ -17,7 +17,7 @@ import {
   OUTCOME_CHOICES,
   OUTCOME_RESULT,
 } from '@/components/calls/call-presentation';
-import { MarketplaceTag, VerificationBadge } from '@/components/contacts/marketplace-panel';
+import { AccessBadge, MarketplaceTag } from '@/components/contacts/marketplace-panel';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, SheetContent } from '@/components/ui/dialog';
@@ -436,6 +436,7 @@ function ContactFields({
     marketplace: {
       profileType: string | null;
       verificationStatus: string | null;
+      accessStatus: string | null;
       listingsActive: number;
       removedAt: string | null;
     } | null;
@@ -479,7 +480,7 @@ function ContactFields({
       {contact.marketplace && !contact.marketplace.removedAt ? (
         <div className="flex flex-wrap items-center gap-2 rounded-[10px] bg-[var(--surface-2)] px-3 py-2">
           <MarketplaceTag account={contact.marketplace} className="text-xs" />
-          <VerificationBadge status={contact.marketplace.verificationStatus} />
+          <AccessBadge account={contact.marketplace} />
           {profileUrl ? (
             <a
               href={profileUrl}

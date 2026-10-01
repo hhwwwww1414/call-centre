@@ -17,7 +17,10 @@ CREATE SCHEMA IF NOT EXISTS crm AUTHORIZATION gen_user;
 COMMENT ON SCHEMA crm IS 'Витрина для CRM колл-центра (только чтение, пользователь crm_reader)';
 REVOKE ALL ON SCHEMA crm FROM PUBLIC;
 
-CREATE OR REPLACE FUNCTION crm.accounts()
+-- Набор колонок менялся: CREATE OR REPLACE не умеет менять тип результата
+DROP FUNCTION IF EXISTS crm.accounts();
+
+CREATE FUNCTION crm.accounts()
 RETURNS TABLE (
   user_id text,
   public_id integer,
@@ -25,6 +28,8 @@ RETURNS TABLE (
   email text,
   phone text,
   phone_verified boolean,
+  email_verified boolean,
+  access_status text,
   registered_at timestamp,
   account_status text,
   seller_activated_at timestamp,
@@ -75,6 +80,18 @@ AS $fn$
     u.email,
     u.phone,
     u."phoneVerifiedAt" IS NOT NULL,
+    u."emailVerifiedAt" IS NOT NULL,
+    -- Те же правила, что в админке площадки (backend/src/admin/user-access-status.ts):
+    -- профиль уходит на модерацию только после подтверждения почты
+    CASE
+      WHEN p.id IS NULL THEN 'no_profile'
+      WHEN p."verificationStatus" = 'REJECTED' THEN 'rejected'
+      WHEN p."verificationStatus" = 'MANUAL_REVIEW' THEN 'pending'
+      WHEN p."verificationStatus" = 'PENDING' THEN
+        CASE WHEN u."emailVerifiedAt" IS NOT NULL THEN 'pending' ELSE 'email_unconfirmed' END
+      WHEN u."accountStatus" = 'ACTIVE' THEN 'approved'
+      ELSE 'restricted'
+    END,
     u."createdAt",
     u."accountStatus"::text,
     u."sellerActivatedAt",

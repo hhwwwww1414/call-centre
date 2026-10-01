@@ -23,6 +23,8 @@ export const CONTACT_SELECT = {
       name: true,
       email: true,
       phoneVerified: true,
+      emailVerified: true,
+      accessStatus: true,
       registeredAt: true,
       accountStatus: true,
       sellerActivatedAt: true,

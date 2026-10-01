@@ -59,6 +59,7 @@ export async function GET(request: Request) {
             id: true,
             profileType: true,
             verificationStatus: true,
+            accessStatus: true,
             listingsActive: true,
             lastSeenAt: true,
             removedAt: true,

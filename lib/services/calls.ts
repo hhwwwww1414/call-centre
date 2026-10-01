@@ -131,6 +131,7 @@ export async function getCallForUser(user: SessionUser, callId: string) {
               id: true,
               profileType: true,
               verificationStatus: true,
+              accessStatus: true,
               listingsActive: true,
               registeredAt: true,
               removedAt: true,

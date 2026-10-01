@@ -53,7 +53,8 @@ describe('синхронизация с vin2win', () => {
       'marketplace',
       'no_listings',
       'approved',
-      'on_review',
+      'pending',
+      'email_unconfirmed',
       'rejected',
       'drafts',
       'dormant',
@@ -75,5 +76,16 @@ describe('синхронизация с vin2win', () => {
       { type: 'TELEGRAM', url: 'https://t.me/rmv221' },
       { type: 'AVITO', url: 'https://www.avito.ru/user/1' },
     ]);
+  });
+
+  it('сегменты доступа совпадают с группами админки площадки', () => {
+    expect(marketplaceSegmentWhere('email_unconfirmed')).toEqual({
+      marketplace: { removedAt: null, accessStatus: 'email_unconfirmed' },
+    });
+  });
+
+  it('старая ссылка на сегмент «на проверке» открывает «ждут модерации»', async () => {
+    const { contactFiltersSchema } = await import('@/lib/validation');
+    expect(contactFiltersSchema.parse({ segment: 'on_review' }).segment).toBe('pending');
   });
 });

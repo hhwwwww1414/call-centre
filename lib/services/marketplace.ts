@@ -44,6 +44,8 @@ export type MarketplaceRow = {
   email: string | null;
   phone: string | null;
   phone_verified: boolean;
+  email_verified: boolean | null;
+  access_status: string | null;
   registered_at: Date;
   account_status: string;
   seller_activated_at: Date | null;
@@ -148,6 +150,8 @@ function accountData(row: MarketplaceRow, phone: string | null, syncedAt: Date) 
     name: displayName(row),
     email: row.email,
     phoneVerified: row.phone_verified,
+    emailVerified: row.email_verified ?? false,
+    accessStatus: row.access_status,
     registeredAt: row.registered_at,
     accountStatus: row.account_status,
     sellerActivatedAt: row.seller_activated_at,
@@ -321,7 +325,8 @@ export const MARKETPLACE_SEGMENTS = [
   'marketplace',
   'no_listings',
   'approved',
-  'on_review',
+  'pending',
+  'email_unconfirmed',
   'rejected',
   'drafts',
   'dormant',
@@ -347,16 +352,12 @@ export function marketplaceSegmentWhere(segment: MarketplaceSegment): Prisma.Con
           listingsSold: 0,
         },
       };
+    // Доступ на площадке — по тем же правилам, что в её админке
     case 'approved':
-      return {
-        marketplace: { ...base, verificationStatus: { in: ['APPROVED', 'AUTO_APPROVED'] } },
-      };
-    case 'on_review':
-      return {
-        marketplace: { ...base, verificationStatus: { in: ['PENDING', 'MANUAL_REVIEW'] } },
-      };
+    case 'pending':
+    case 'email_unconfirmed':
     case 'rejected':
-      return { marketplace: { ...base, verificationStatus: 'REJECTED' } };
+      return { marketplace: { ...base, accessStatus: segment } };
     case 'drafts':
       return { marketplace: { ...base, listingsDraft: { gt: 0 } } };
     case 'dormant': {

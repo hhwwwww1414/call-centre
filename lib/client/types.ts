@@ -137,6 +137,7 @@ export type CallDetailsResponse = {
             id: string;
             profileType: string | null;
             verificationStatus: string | null;
+            accessStatus: string | null;
             listingsActive: number;
             registeredAt: string;
             removedAt: string | null;
@@ -215,6 +216,7 @@ export type ContactRow = {
     id: string;
     profileType: string | null;
     verificationStatus: string | null;
+    accessStatus: string | null;
     listingsActive: number;
     lastSeenAt: string | null;
     removedAt: string | null;
@@ -227,6 +229,7 @@ export type MarketplaceAccountView = {
   name: string | null;
   email: string | null;
   phoneVerified: boolean;
+  emailVerified: boolean;
   registeredAt: string;
   accountStatus: string;
   sellerActivatedAt: string | null;
@@ -237,6 +240,7 @@ export type MarketplaceAccountView = {
   city: string | null;
   region: string | null;
   verificationStatus: string | null;
+  accessStatus: string | null;
   moderationNote: string | null;
   trustScore: number | null;
   profileCompleteness: number | null;

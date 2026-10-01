@@ -140,6 +140,10 @@ model MarketplaceAccount {
   name              String?
   email             String?
   phoneVerified     Boolean   @default(false)
+  emailVerified     Boolean   @default(false)
+  /// Доступ на площадке по правилам её админки: approved | pending |
+  /// email_unconfirmed | rejected | restricted | no_profile
+  accessStatus      String?
   registeredAt      DateTime
   accountStatus     String
   sellerActivatedAt DateTime?
@@ -183,6 +187,7 @@ model MarketplaceAccount {
 
   @@index([phoneE164])
   @@index([verificationStatus])
+  @@index([accessStatus])
   @@index([lastSeenAt])
 }
 
