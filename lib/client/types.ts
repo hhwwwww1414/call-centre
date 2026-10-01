@@ -219,6 +219,7 @@ export type ContactRow = {
     accessStatus: string | null;
     listingsActive: number;
     lastSeenAt: string | null;
+    lastOnlineAt: string | null;
     removedAt: string | null;
   } | null;
 };
@@ -234,6 +235,7 @@ export type MarketplaceAccountView = {
   accountStatus: string;
   sellerActivatedAt: string | null;
   lastSeenAt: string | null;
+  lastOnlineAt: string | null;
   profileType: string | null;
   profileName: string | null;
   legalName: string | null;

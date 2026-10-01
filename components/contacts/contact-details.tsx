@@ -42,7 +42,13 @@ export function ContactDetails({
   role: Role;
 }) {
   const router = useRouter();
-  const { data: pages, isLoading, isError } = useContact(contactId);
+  const {
+    data: pages,
+    isLoading,
+    isError,
+  } = useContact(contactId, 'all', undefined, {
+    live: true,
+  });
   const data = pages?.pages[0];
   const update = useUpdateContact(contactId);
 

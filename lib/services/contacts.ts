@@ -29,6 +29,7 @@ export const CONTACT_SELECT = {
       accountStatus: true,
       sellerActivatedAt: true,
       lastSeenAt: true,
+      lastOnlineAt: true,
       profileType: true,
       profileName: true,
       legalName: true,

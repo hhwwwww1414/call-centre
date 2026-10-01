@@ -30,11 +30,12 @@ RETURNS TABLE (
   phone_verified boolean,
   email_verified boolean,
   access_status text,
-  registered_at timestamp,
+  registered_at timestamptz,
   account_status text,
-  seller_activated_at timestamp,
-  first_useful_action_at timestamp,
-  last_seen_at timestamp,
+  seller_activated_at timestamptz,
+  first_useful_action_at timestamptz,
+  last_seen_at timestamptz,
+  last_online_at timestamptz,
   profile_id text,
   profile_type text,
   profile_name text,
@@ -47,14 +48,14 @@ RETURNS TABLE (
   moderation_note text,
   trust_score integer,
   profile_completeness integer,
-  verified_at timestamp,
+  verified_at timestamptz,
   listings_active integer,
   listings_draft integer,
   listings_pending integer,
   listings_rejected integer,
   listings_archived integer,
   listings_sold integer,
-  last_listing_at timestamp,
+  last_listing_at timestamptz,
   views_30d integer,
   views_total integer,
   leads_total integer,
@@ -66,12 +67,15 @@ RETURNS TABLE (
   extra_phones text[],
   attribution_source text,
   attribution_campaign text,
-  updated_at timestamp
+  updated_at timestamptz
 )
 LANGUAGE sql
 STABLE
 SECURITY DEFINER
 SET search_path = pg_catalog, public
+-- Колонки площадки — timestamp без пояса, но в них UTC. Отдаём timestamptz,
+-- иначе клиент прочтёт их в поясе своего сервера (у CRM — Москва, +3 ч)
+SET TimeZone = 'UTC'
 AS $fn$
   SELECT
     u.id,
@@ -92,11 +96,12 @@ AS $fn$
       WHEN u."accountStatus" = 'ACTIVE' THEN 'approved'
       ELSE 'restricted'
     END,
-    u."createdAt",
+    u."createdAt"::timestamptz,
     u."accountStatus"::text,
-    u."sellerActivatedAt",
-    u."firstUsefulActionAt",
-    s.last_seen_at,
+    u."sellerActivatedAt"::timestamptz,
+    u."firstUsefulActionAt"::timestamptz,
+    s.last_seen_at::timestamptz,
+    u."lastOnlineAt"::timestamptz,
     p.id,
     p.type::text,
     p.name,
@@ -109,14 +114,14 @@ AS $fn$
     p."moderationNote",
     p."trustScore",
     p."profileCompleteness",
-    p."verifiedAt",
+    p."verifiedAt"::timestamptz,
     coalesce(l.active, 0),
     coalesce(l.draft, 0),
     coalesce(l.pending, 0),
     coalesce(l.rejected, 0),
     coalesce(l.archived, 0),
     coalesce(l.sold, 0),
-    l.last_listing_at,
+    l.last_listing_at::timestamptz,
     coalesce(v.views_30d, 0),
     coalesce(v.views_total, 0),
     coalesce(ld.leads_total, 0),
@@ -128,7 +133,7 @@ AS $fn$
     coalesce(cp.phones, ARRAY[]::text[]),
     at.source,
     at.campaign,
-    greatest(u."updatedAt", p."updatedAt", l.last_change_at, s.last_seen_at)
+    greatest(u."updatedAt", p."updatedAt", l.last_change_at, s.last_seen_at)::timestamptz
   FROM "User" u
   LEFT JOIN "SellerProfile" p ON p."userId" = u.id
   LEFT JOIN LATERAL (
@@ -186,6 +191,25 @@ AS $fn$
   ) at ON true
   WHERE u.role = 'USER'
 $fn$;
+
+-- Присутствие: только время онлайна, для частой синхронизации (раз в 30 с).
+-- lastOnlineAt площадка пишет сама: раз в 2 минуты для тех, кто в сети,
+-- и в течение 15 секунд после ухода (см. online.md в репозитории площадки)
+DROP FUNCTION IF EXISTS crm.presence();
+
+CREATE FUNCTION crm.presence()
+RETURNS TABLE (user_id text, last_online_at timestamptz)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = pg_catalog, public
+SET TimeZone = 'UTC'
+AS $fn$
+  SELECT id, "lastOnlineAt"::timestamptz FROM "User" WHERE role = 'USER'
+$fn$;
+
+REVOKE ALL ON FUNCTION crm.presence() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION crm.presence() TO crm_reader;
 
 COMMENT ON FUNCTION crm.accounts() IS 'Аккаунты vin2win для CRM: профиль, объявления, активность. Только чтение';
 

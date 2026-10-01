@@ -147,7 +147,9 @@ model MarketplaceAccount {
   registeredAt      DateTime
   accountStatus     String
   sellerActivatedAt DateTime?
-  lastSeenAt        DateTime?
+  lastSeenAt        DateTime? // последний вход (новая сессия)
+  /// Последний онлайн: площадка пишет раз в 2 минуты, пока человек на сайте
+  lastOnlineAt      DateTime?
 
   profileType         String? // PRIVATE | DEALER
   profileName         String?

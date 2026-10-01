@@ -18,6 +18,8 @@ import { buildListenerConfig } from '@/lib/realtime/pg-config';
  */
 
 const SYNC_INTERVAL_MS = 5 * 60_000;
+// Онлайн площадка фиксирует раз в 2 минуты — чаще 30 с опрашивать незачем
+const PRESENCE_INTERVAL_MS = 30_000;
 const STATUS_KEY = 'marketplace.sync';
 
 export const MARKETPLACE_PUBLIC_URL = (
@@ -51,6 +53,7 @@ export type MarketplaceRow = {
   seller_activated_at: Date | null;
   first_useful_action_at: Date | null;
   last_seen_at: Date | null;
+  last_online_at: Date | null;
   profile_id: string | null;
   profile_type: string | null;
   profile_name: string | null;
@@ -124,7 +127,7 @@ export function normalizeLinks(raw: unknown): { type: string; url: string }[] {
   });
 }
 
-async function fetchAccounts(): Promise<MarketplaceRow[]> {
+async function withMarketplace<T>(query: (client: Client) => Promise<T>): Promise<T> {
   const config = buildListenerConfig(process.env.MARKETPLACE_DATABASE_URL!);
   const client = new Client({
     ...config,
@@ -136,11 +139,16 @@ async function fetchAccounts(): Promise<MarketplaceRow[]> {
   });
   await client.connect();
   try {
-    const result = await client.query<MarketplaceRow>('select * from crm.accounts()');
-    return result.rows;
+    return await query(client);
   } finally {
     await client.end().catch(() => undefined);
   }
+}
+
+async function fetchAccounts(): Promise<MarketplaceRow[]> {
+  return withMarketplace(
+    async (client) => (await client.query<MarketplaceRow>('select * from crm.accounts()')).rows,
+  );
 }
 
 function accountData(row: MarketplaceRow, phone: string | null, syncedAt: Date) {
@@ -156,6 +164,7 @@ function accountData(row: MarketplaceRow, phone: string | null, syncedAt: Date) 
     accountStatus: row.account_status,
     sellerActivatedAt: row.seller_activated_at,
     lastSeenAt: row.last_seen_at,
+    lastOnlineAt: row.last_online_at,
     profileType: row.profile_type,
     profileName: row.profile_name,
     legalName: row.legal_name,
@@ -309,6 +318,49 @@ export async function getSyncStatus(): Promise<SyncStatus | null> {
   return (row?.value as SyncStatus | undefined) ?? null;
 }
 
+let presenceRunning = false;
+
+/**
+ * Лёгкий проход только по времени онлайна: карточка клиента показывает
+ * «в сети» без ожидания полной синхронизации. Пишем лишь изменившееся.
+ */
+export async function syncPresence(): Promise<number> {
+  if (presenceRunning) return 0;
+  presenceRunning = true;
+  try {
+    const rows = await withMarketplace(
+      async (client) =>
+        (
+          await client.query<{ user_id: string; last_online_at: Date | null }>(
+            'select * from crm.presence()',
+          )
+        ).rows,
+    );
+    const known = new Map(
+      (await prisma.marketplaceAccount.findMany({ select: { id: true, lastOnlineAt: true } })).map(
+        (a) => [a.id, a.lastOnlineAt?.getTime() ?? null],
+      ),
+    );
+    let changed = 0;
+    for (const row of rows) {
+      if (!known.has(row.user_id)) continue; // новых добавит полная синхронизация
+      const next = row.last_online_at?.getTime() ?? null;
+      if (known.get(row.user_id) === next) continue;
+      await prisma.marketplaceAccount.update({
+        where: { id: row.user_id },
+        data: { lastOnlineAt: row.last_online_at },
+      });
+      changed += 1;
+    }
+    return changed;
+  } catch (err) {
+    logger.warn({ err }, 'обновление онлайна vin2win не удалось');
+    return 0;
+  } finally {
+    presenceRunning = false;
+  }
+}
+
 let timer: NodeJS.Timeout | null = null;
 
 export function startMarketplaceSync(): void {
@@ -317,6 +369,7 @@ export function startMarketplaceSync(): void {
   timer = setInterval(run, SYNC_INTERVAL_MS);
   timer.unref();
   setTimeout(run, 20_000).unref();
+  setInterval(() => void syncPresence(), PRESENCE_INTERVAL_MS).unref();
   logger.info('синхронизация с vin2win включена');
 }
 

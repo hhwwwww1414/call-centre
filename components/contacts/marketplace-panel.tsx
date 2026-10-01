@@ -85,6 +85,26 @@ export function moderationNameClass(account: AccessFields | null): string | unde
   return access ? ACCESS[access]?.name : undefined;
 }
 
+/**
+ * Площадка отмечает онлайн раз в 2 минуты, пока вкладка открыта, — значит
+ * свежее 2,5 минут означает «сейчас на сайте».
+ */
+const ONLINE_WINDOW_MS = 150_000;
+
+export function isOnline(lastOnlineAt: string | null | undefined): boolean {
+  return Boolean(lastOnlineAt && Date.now() - Date.parse(lastOnlineAt) < ONLINE_WINDOW_MS);
+}
+
+export function OnlineDot({ className }: { className?: string }) {
+  return (
+    <span
+      className={cn('size-2 shrink-0 rounded-full bg-[var(--success)]', className)}
+      aria-label="В сети"
+      title="В сети"
+    />
+  );
+}
+
 export function AccessBadge({ account }: { account: AccessFields }) {
   const access = accessOf(account);
   const view = access ? ACCESS[access] : null;
@@ -100,10 +120,12 @@ export function MarketplaceTag({
     profileType: string | null;
     listingsActive: number;
     removedAt: string | null;
+    lastOnlineAt?: string | null;
   } | null;
   className?: string;
 }) {
   if (!account || account.removedAt) return null;
+  const online = isOnline(account.lastOnlineAt);
   return (
     <span
       className={cn(
@@ -116,6 +138,11 @@ export function MarketplaceTag({
       </span>
       {account.profileType ? <span>· {PROFILE_TYPE_LABEL[account.profileType]}</span> : null}
       <span className="numeric">· {account.listingsActive} объявл.</span>
+      {online ? (
+        <span className="inline-flex items-center gap-1 text-[var(--success)]">
+          · <OnlineDot /> в сети
+        </span>
+      ) : null}
     </span>
   );
 }
@@ -169,6 +196,11 @@ export function MarketplacePanel({
             <Badge tone="outline">{PROFILE_TYPE_LABEL[account.profileType]}</Badge>
           ) : null}
           <AccessBadge account={account} />
+          {isOnline(account.lastOnlineAt) ? (
+            <Badge tone="success">
+              <OnlineDot />В сети
+            </Badge>
+          ) : null}
           {account.removedAt ? <Badge tone="danger">Удалён с площадки</Badge> : null}
         </div>
         <div className="flex gap-2">
@@ -214,8 +246,14 @@ export function MarketplacePanel({
 
         <dl className="grid gap-x-8 sm:grid-cols-2">
           <Fact label="Регистрация">{formatInZone(account.registeredAt, timezone, 'date')}</Fact>
-          <Fact label="Последний вход">
-            {account.lastSeenAt ? formatRelative(account.lastSeenAt) : 'не заходил'}
+          <Fact label="Был в сети">
+            {isOnline(account.lastOnlineAt)
+              ? 'сейчас'
+              : account.lastOnlineAt
+                ? formatRelative(account.lastOnlineAt)
+                : account.lastSeenAt
+                  ? `вход ${formatRelative(account.lastSeenAt)}`
+                  : 'не заходил'}
           </Fact>
           <Fact label="Последнее объявление">
             {account.lastListingAt ? formatInZone(account.lastListingAt, timezone, 'date') : '—'}

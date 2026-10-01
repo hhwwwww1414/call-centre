@@ -201,11 +201,20 @@ export function useContacts(params: CallQueryParams) {
     queryFn: ({ pageParam }) =>
       apiFetch<ContactListResponse>(`/api/contacts${buildQuery({ ...params, cursor: pageParam })}`),
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+    // Онлайн и статусы vin2win меняются без участия менеджера
+    refetchInterval: 60_000,
   });
 }
 
-export function useContact(id: string | null, view: ContactHistoryView = 'all', tag?: string) {
+export function useContact(
+  id: string | null,
+  view: ContactHistoryView = 'all',
+  tag?: string,
+  options?: { live?: boolean },
+) {
   return useInfiniteQuery({
+    // Открытая карточка сама подтягивает онлайн и данные площадки
+    refetchInterval: options?.live ? 30_000 : false,
     queryKey: ['contacts', 'detail', id, view, tag],
     initialPageParam: undefined as string | undefined,
     queryFn: ({ pageParam }) =>

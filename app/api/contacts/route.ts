@@ -62,6 +62,7 @@ export async function GET(request: Request) {
             accessStatus: true,
             listingsActive: true,
             lastSeenAt: true,
+            lastOnlineAt: true,
             removedAt: true,
           },
         },
