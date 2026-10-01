@@ -6,6 +6,7 @@ import {
   displayName,
   marketplaceProfileUrl,
   marketplaceSegmentWhere,
+  normalizeLinks,
   type MarketplaceRow,
 } from '@/lib/services/marketplace';
 
@@ -58,5 +59,19 @@ describe('синхронизация с vin2win', () => {
     ] as const) {
       expect(marketplaceSegmentWhere(segment)).toMatchObject({ marketplace: { removedAt: null } });
     }
+  });
+
+  it('ссылки без протокола получают https, опасные отбрасываются', () => {
+    expect(
+      normalizeLinks([
+        { type: 'TELEGRAM', url: 't.me/rmv221' },
+        { type: 'AVITO', url: 'https://www.avito.ru/user/1' },
+        { type: 'WEBSITE', url: 'javascript:alert(1)' },
+        { type: 'WEBSITE', url: '' },
+      ]),
+    ).toEqual([
+      { type: 'TELEGRAM', url: 'https://t.me/rmv221' },
+      { type: 'AVITO', url: 'https://www.avito.ru/user/1' },
+    ]);
   });
 });

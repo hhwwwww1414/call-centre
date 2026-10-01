@@ -2,6 +2,7 @@ import type { Prisma } from '@prisma/client';
 import { Client } from 'pg';
 
 import { prisma } from '@/lib/db';
+import { safeExternalUrl } from '@/lib/external-url';
 import { logger } from '@/lib/logger';
 import { toE164 } from '@/lib/phone';
 import { buildListenerConfig } from '@/lib/realtime/pg-config';
@@ -111,6 +112,16 @@ export function accountPhones(row: MarketplaceRow): string[] {
   return [...new Set(phones)];
 }
 
+/** Ссылки на внешние профили: только безопасные, с протоколом. */
+export function normalizeLinks(raw: unknown): { type: string; url: string }[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.flatMap((item) => {
+    const link = item as { type?: unknown; url?: unknown };
+    const url = typeof link.url === 'string' ? safeExternalUrl(link.url) : null;
+    return url && typeof link.type === 'string' ? [{ type: link.type, url }] : [];
+  });
+}
+
 async function fetchAccounts(): Promise<MarketplaceRow[]> {
   const config = buildListenerConfig(process.env.MARKETPLACE_DATABASE_URL!);
   const client = new Client({
@@ -164,7 +175,7 @@ function accountData(row: MarketplaceRow, phone: string | null, syncedAt: Date) 
     dealsTotal: row.deals_total,
     reviewsCount: row.reviews_count,
     reviewsAvg: row.reviews_avg == null ? null : Number(row.reviews_avg),
-    links: (Array.isArray(row.links) ? row.links : []) as Prisma.InputJsonValue,
+    links: normalizeLinks(row.links) as Prisma.InputJsonValue,
     extraPhones: (row.extra_phones ?? []).map((p) => toE164(p) || p),
     source: row.attribution_source,
     campaign: row.attribution_campaign,

@@ -7,6 +7,7 @@ import { Badge, type BadgeProps } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { MarketplaceAccountView } from '@/lib/client/types';
+import { safeExternalUrl } from '@/lib/external-url';
 import { formatInZone, formatRelative } from '@/lib/time';
 import { cn } from '@/lib/utils';
 
@@ -189,18 +190,24 @@ export function MarketplacePanel({
 
         {account.links.length ? (
           <div className="flex flex-wrap gap-1.5">
-            {account.links.map((link) => (
-              <a
-                key={link.url}
-                href={link.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex h-8 items-center gap-1 rounded-full border border-[var(--border)] px-3 text-xs text-[var(--text-secondary)] transition-colors hover:border-[var(--border-strong)] hover:text-[var(--foreground)]"
-              >
-                {LINK_LABEL[link.type] ?? link.type}
-                <ArrowUpRight className="size-3" aria-hidden />
-              </a>
-            ))}
+            {account.links
+              .flatMap((link) => {
+                // Уже сохранённые снимки могли прийти до нормализации
+                const href = safeExternalUrl(link.url);
+                return href ? [{ ...link, url: href }] : [];
+              })
+              .map((link) => (
+                <a
+                  key={link.url}
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex h-8 items-center gap-1 rounded-full border border-[var(--border)] px-3 text-xs text-[var(--text-secondary)] transition-colors hover:border-[var(--border-strong)] hover:text-[var(--foreground)]"
+                >
+                  {LINK_LABEL[link.type] ?? link.type}
+                  <ArrowUpRight className="size-3" aria-hidden />
+                </a>
+              ))}
           </div>
         ) : null}
 
