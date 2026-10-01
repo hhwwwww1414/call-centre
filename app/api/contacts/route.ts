@@ -7,6 +7,7 @@ import { prisma } from '@/lib/db';
 import { digitsOnly } from '@/lib/phone';
 import { contactCreateSchema, contactFiltersSchema, parseQuery } from '@/lib/validation';
 import { CONTACT_SELECT } from '@/lib/services/contacts';
+import { marketplaceSegmentWhere } from '@/lib/services/marketplace';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -16,12 +17,18 @@ export async function GET(request: Request) {
     const user = await requireUser();
     const filters = parseQuery(contactFiltersSchema, request.url);
 
-    // База общая: все, с кем был звонок или у кого есть ответственный
+    // База общая: все, с кем был звонок, у кого есть ответственный или кто есть на площадке
     const scope: Prisma.ContactWhereInput = {
-      OR: [{ calls: { some: {} } }, { ownerId: { not: null } }],
+      OR: [
+        { calls: { some: {} } },
+        { ownerId: { not: null } },
+        { marketplace: { removedAt: null } },
+      ],
     };
 
     const where: Prisma.ContactWhereInput = { AND: [scope] };
+    if (filters.segment)
+      (where.AND as Prisma.ContactWhereInput[]).push(marketplaceSegmentWhere(filters.segment));
     if (filters.owner === 'me') where.ownerId = user.id;
     else if (filters.owner === 'none') where.ownerId = null;
     else if (filters.owner && canSeeAllCalls(user.role)) where.ownerId = filters.owner;
@@ -47,6 +54,16 @@ export async function GET(request: Request) {
         note: true,
         isBlocked: true,
         owner: { select: { id: true, name: true } },
+        marketplace: {
+          select: {
+            id: true,
+            profileType: true,
+            verificationStatus: true,
+            listingsActive: true,
+            lastSeenAt: true,
+            removedAt: true,
+          },
+        },
         _count: { select: { calls: true } },
         // Последний звонок по клиенту от любого менеджера — чтобы не звонить вдвоём
         calls: {

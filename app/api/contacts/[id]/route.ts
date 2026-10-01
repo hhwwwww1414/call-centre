@@ -3,6 +3,7 @@ import { writeAudit } from '@/lib/audit';
 import { AuthError, callScopeFilter, canSeeAllCalls, requireUser } from '@/lib/auth/rbac';
 import { prisma } from '@/lib/db';
 import { CALL_LIST_SELECT } from '@/lib/services/calls';
+import { marketplaceAdminUrl, marketplaceProfileUrl } from '@/lib/services/marketplace';
 import { contactUpdateSchema, parseQuery } from '@/lib/validation';
 import {
   assertContactAccess,
@@ -58,8 +59,15 @@ export async function GET(request: Request, { params }: Params) {
       }),
     ]);
     const calls = rows.slice(0, 50);
+    const account = contact.marketplace;
     return {
       contact,
+      marketplaceLinks: account
+        ? {
+            profile: marketplaceProfileUrl(account.id),
+            admin: canSeeAllCalls(user.role) ? marketplaceAdminUrl(account.id) : null,
+          }
+        : null,
       calls,
       total,
       nextCursor: rows.length > 50 ? calls.at(-1)!.id : null,

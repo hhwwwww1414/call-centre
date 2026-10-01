@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 
 import { CallButton } from '@/components/calls/call-button';
 import { ContactActivity } from '@/components/contacts/contact-activity';
+import { MarketplacePanel } from '@/components/contacts/marketplace-panel';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -240,7 +241,16 @@ export function ContactDetails({
             </p>
           </CardContent>
         </Card>
-        <ContactActivity contactId={contactId} timezone={timezone} summary={summary} />
+        <div className="flex min-w-0 flex-col gap-5">
+          {contact.marketplace && data.marketplaceLinks ? (
+            <MarketplacePanel
+              account={contact.marketplace}
+              links={data.marketplaceLinks}
+              timezone={timezone}
+            />
+          ) : null}
+          <ContactActivity contactId={contactId} timezone={timezone} summary={summary} />
+        </div>
       </div>
     </div>
   );

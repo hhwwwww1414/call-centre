@@ -2,7 +2,7 @@
 
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import type { CallOutcome, CallStatus } from '@prisma/client';
-import { Star, ThumbsDown, ThumbsUp, X } from 'lucide-react';
+import { ArrowUpRight, Star, ThumbsDown, ThumbsUp, X } from 'lucide-react';
 import Link from 'next/link';
 import * as React from 'react';
 import { toast } from 'sonner';
@@ -17,6 +17,7 @@ import {
   OUTCOME_CHOICES,
   OUTCOME_RESULT,
 } from '@/components/calls/call-presentation';
+import { MarketplaceTag, VerificationBadge } from '@/components/contacts/marketplace-panel';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, SheetContent } from '@/components/ui/dialog';
@@ -78,7 +79,7 @@ function DrawerBody({
     );
   }
 
-  const { call, history } = data;
+  const { call, history, marketplaceProfile } = data;
   const number = externalNumber(call);
   const contact = call.contact;
   const name = contact?.name;
@@ -124,7 +125,7 @@ function DrawerBody({
 
       <div className="flex-1 overflow-y-auto px-5 py-5">
         <div className="flex flex-col gap-6">
-          {contact ? <ContactFields contact={contact} /> : null}
+          {contact ? <ContactFields contact={contact} profileUrl={marketplaceProfile} /> : null}
           {call.recordingReady ? <AudioPlayer src={`/api/calls/${call.id}/recording`} /> : null}
           <CallEditors call={call} />
           <ContactHistory
@@ -424,6 +425,7 @@ function TagsEditor({ tags, onChange }: { tags: string[]; onChange: (tags: strin
  */
 function ContactFields({
   contact,
+  profileUrl,
 }: {
   contact: {
     id: string;
@@ -431,7 +433,14 @@ function ContactFields({
     company: string | null;
     note: string | null;
     owner: { id: string; name: string } | null;
+    marketplace: {
+      profileType: string | null;
+      verificationStatus: string | null;
+      listingsActive: number;
+      removedAt: string | null;
+    } | null;
   };
+  profileUrl: string | null;
 }) {
   const update = useUpdateContact(contact.id);
   const save = (field: 'name' | 'company' | 'note', value: string) => {
@@ -467,6 +476,23 @@ function ContactFields({
           <span className="font-normal text-[var(--text-muted)]"> · {contact.owner.name}</span>
         ) : null}
       </SectionLabel>
+      {contact.marketplace && !contact.marketplace.removedAt ? (
+        <div className="flex flex-wrap items-center gap-2 rounded-[10px] bg-[var(--surface-2)] px-3 py-2">
+          <MarketplaceTag account={contact.marketplace} className="text-xs" />
+          <VerificationBadge status={contact.marketplace.verificationStatus} />
+          {profileUrl ? (
+            <a
+              href={profileUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-2xs ml-auto inline-flex items-center gap-0.5 font-medium text-[var(--brand)] hover:underline dark:text-[var(--brand-text)]"
+            >
+              Профиль на площадке
+              <ArrowUpRight className="size-3" aria-hidden />
+            </a>
+          ) : null}
+        </div>
+      ) : null}
       <div className="grid gap-2 sm:grid-cols-2">
         <InlineField
           key={`name-${contact.id}-${contact.name ?? ''}`}

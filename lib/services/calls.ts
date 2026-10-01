@@ -2,6 +2,7 @@ import { CallOutcome, CallStatus, type Prisma } from '@prisma/client';
 
 import { callScopeFilter, type SessionUser } from '@/lib/auth/rbac';
 import { prisma } from '@/lib/db';
+import { marketplaceProfileUrl } from '@/lib/services/marketplace';
 import { digitsOnly } from '@/lib/phone';
 import { resolvePeriod } from '@/lib/time';
 import type { CallFilters } from '@/lib/validation';
@@ -125,6 +126,16 @@ export async function getCallForUser(user: SessionUser, callId: string) {
           note: true,
           isBlocked: true,
           owner: { select: { id: true, name: true } },
+          marketplace: {
+            select: {
+              id: true,
+              profileType: true,
+              verificationStatus: true,
+              listingsActive: true,
+              registeredAt: true,
+              removedAt: true,
+            },
+          },
         },
       },
       rawPayload: false,
@@ -137,6 +148,9 @@ export async function getCallForUser(user: SessionUser, callId: string) {
   });
 
   if (!call) return null;
+  const account = call.contact?.marketplace;
+  const marketplaceProfile =
+    account && !account.removedAt ? marketplaceProfileUrl(account.id) : null;
 
   // История общения с тем же контактом — в пределах прав текущего пользователя
   const history = call.contact
@@ -161,7 +175,7 @@ export async function getCallForUser(user: SessionUser, callId: string) {
       })
     : [];
 
-  return { call, history };
+  return { call, history, marketplaceProfile };
 }
 
 // Дозвон — факт телефонии: так входящие и нераспределённые звонки не пропадают

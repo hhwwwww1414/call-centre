@@ -331,3 +331,29 @@ export function useMediaQuery(query: string): boolean {
 export function useIsMobile(): boolean {
   return useMediaQuery('(max-width: 767px)');
 }
+
+export type MarketplaceSyncOverview = {
+  configured: boolean;
+  status: { at: string; ok: boolean; accounts?: number; error?: string } | null;
+  accounts: number;
+  unassigned: number;
+};
+
+export function useMarketplaceSync() {
+  return useQuery({
+    queryKey: ['marketplace', 'sync'],
+    queryFn: () => apiFetch<MarketplaceSyncOverview>('/api/admin/marketplace'),
+  });
+}
+
+export function useRunMarketplaceSync() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      apiFetch<MarketplaceSyncOverview>('/api/admin/marketplace', { method: 'POST' }),
+    onSuccess: (data) => {
+      queryClient.setQueryData(['marketplace', 'sync'], data);
+      void queryClient.invalidateQueries({ queryKey: ['contacts'] });
+    },
+  });
+}

@@ -29,7 +29,7 @@ const nextConfig: NextConfig = {
   // node_modules/.pnpm заставляет трассировщик обходить весь стор и съедает
   // всю память сборки. Движок Prisma докладывается в образ отдельным COPY
   // в Dockerfile — там путь известен точно.
-  serverExternalPackages: ['@node-rs/argon2', 'pino', 'exceljs'],
+  serverExternalPackages: ['@node-rs/argon2', 'pino', 'exceljs', 'pg'],
   experimental: {
     // forbidden()/unauthorized() из next/navigation — рендерят app/forbidden.tsx
     authInterrupts: true,

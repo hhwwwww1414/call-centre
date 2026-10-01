@@ -121,10 +121,69 @@ model Contact {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  calls Call[]
+  calls       Call[]
+  marketplace MarketplaceAccount?
 
   @@index([name])
   @@index([ownerId])
+}
+
+/// Аккаунт на площадке vin2win — снимок из витрины crm.accounts() базы
+/// маркетплейса. Обновляется синхронизацией, руками не правится.
+model MarketplaceAccount {
+  id        String   @id // User.id на площадке
+  publicId  Int
+  contactId String?  @unique
+  contact   Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
+  phoneE164         String?
+  name              String?
+  email             String?
+  phoneVerified     Boolean   @default(false)
+  registeredAt      DateTime
+  accountStatus     String
+  sellerActivatedAt DateTime?
+  lastSeenAt        DateTime?
+
+  profileType         String? // PRIVATE | DEALER
+  profileName         String?
+  legalName           String?
+  city                String?
+  region              String?
+  verificationStatus  String?
+  moderationNote      String?
+  trustScore          Int?
+  profileCompleteness Int?
+
+  listingsActive   Int       @default(0)
+  listingsDraft    Int       @default(0)
+  listingsPending  Int       @default(0)
+  listingsRejected Int       @default(0)
+  listingsArchived Int       @default(0)
+  listingsSold     Int       @default(0)
+  lastListingAt    DateTime?
+  views30d         Int       @default(0)
+  viewsTotal       Int       @default(0)
+  leadsTotal       Int       @default(0)
+  threadsTotal     Int       @default(0)
+  dealsTotal       Int       @default(0)
+  reviewsCount     Int       @default(0)
+  reviewsAvg       Float?
+
+  links       Json     @default("[]") // [{ type, url }] — Авито, Авто.ру, Дром…
+  extraPhones String[] @default([])
+  source      String?
+  campaign    String?
+
+  marketplaceUpdatedAt DateTime?
+  removedAt            DateTime? // пропал из витрины: удалён или стал служебным
+  syncedAt             DateTime
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@index([phoneE164])
+  @@index([verificationStatus])
+  @@index([lastSeenAt])
 }
 
 model Call {

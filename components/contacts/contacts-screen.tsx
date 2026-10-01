@@ -2,11 +2,12 @@
 
 import type { Role } from '@prisma/client';
 import { Ban, Plus, Users } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import * as React from 'react';
 
 import { DirectionIcon } from '@/components/calls/call-presentation';
 import { ContactCreateDialog } from '@/components/contacts/contact-create-dialog';
+import { MarketplaceTag, SEGMENT_LABEL } from '@/components/contacts/marketplace-panel';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -27,13 +28,17 @@ import { formatInZone } from '@/lib/time';
 import { pluralWithCount } from '@/lib/utils';
 
 const ALL_OWNERS = '__all__';
+const ALL_SEGMENTS = '__all__';
 
 export function ContactsScreen({ timezone, role }: { timezone: string; role: Role }) {
   const canAssign = role === 'ADMIN' || role === 'SUPERVISOR';
   const router = useRouter();
+  const query = useSearchParams();
   const [search, setSearch] = React.useState('');
   const [onlyBlocked, setOnlyBlocked] = React.useState(false);
-  const [owner, setOwner] = React.useState(ALL_OWNERS);
+  // Фильтры можно передать ссылкой — например, из настроек «без ответственного»
+  const [owner, setOwner] = React.useState(query.get('owner') ?? ALL_OWNERS);
+  const [segment, setSegment] = React.useState(query.get('segment') ?? ALL_SEGMENTS);
   const debounced = useDebounced(search);
   const assignees = useTaskAssignees(canAssign);
   const [createOpen, setCreateOpen] = React.useState(false);
@@ -43,9 +48,10 @@ export function ContactsScreen({ timezone, role }: { timezone: string; role: Rol
       search: debounced.trim() || undefined,
       onlyBlocked: onlyBlocked || undefined,
       owner: owner === ALL_OWNERS ? undefined : owner,
+      segment: segment === ALL_SEGMENTS ? undefined : segment,
       limit: 50,
     }),
-    [debounced, onlyBlocked, owner],
+    [debounced, onlyBlocked, owner, segment],
   );
 
   const { data, isLoading, isError, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } =
@@ -79,6 +85,19 @@ export function ContactsScreen({ timezone, role }: { timezone: string; role: Rol
                   </SelectItem>
                 ))
               : null}
+          </SelectContent>
+        </Select>
+        <Select value={segment} onValueChange={setSegment}>
+          <SelectTrigger className="w-full sm:w-56" aria-label="Сегмент vin2win">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL_SEGMENTS}>Все клиенты</SelectItem>
+            {Object.entries(SEGMENT_LABEL).map(([value, label]) => (
+              <SelectItem key={value} value={value}>
+                {label}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
         <label className="flex min-h-11 items-center gap-2 text-xs text-[var(--text-secondary)] md:min-h-0">
@@ -166,8 +185,11 @@ export function ContactsScreen({ timezone, role }: { timezone: string; role: Rol
                       <td className="max-w-52 px-3 py-2.5">
                         <div className="flex items-center gap-2.5">
                           <Avatar name={contact.name ?? contact.company ?? '?'} size="sm" />
-                          <span className="truncate font-medium text-[var(--foreground)]">
-                            {contact.name || contact.company || 'Без имени'}
+                          <span className="flex min-w-0 flex-col">
+                            <span className="truncate font-medium text-[var(--foreground)]">
+                              {contact.name || contact.company || 'Без имени'}
+                            </span>
+                            <MarketplaceTag account={contact.marketplace} />
                           </span>
                           {contact.isBlocked ? (
                             <Badge tone="danger">
@@ -257,6 +279,7 @@ function ContactCard({
                 {formatPhone(contact.phoneE164)}
               </span>
             ) : null}
+            <MarketplaceTag account={contact.marketplace} className="mt-0.5" />
           </span>
           {contact.isBlocked ? (
             <Badge tone="danger">

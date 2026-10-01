@@ -2,6 +2,7 @@ import { Role } from '@prisma/client';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
+import { MarketplaceSyncCard } from '@/components/admin/marketplace-sync-card';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { requireRolePage } from '@/lib/auth/rbac';
@@ -16,6 +17,7 @@ export default async function AdminSettingsPage() {
 
   return (
     <div className="flex flex-col gap-4">
+      <MarketplaceSyncCard />
       <Card>
         <CardHeader>
           <CardTitle>Разделы администрирования</CardTitle>

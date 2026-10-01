@@ -130,7 +130,19 @@ export type CallHistoryItem = {
 export type CallDetailsResponse = {
   call: Omit<CallItem, 'contact'> & {
     contact:
-      (CallContact & { note: string | null; owner: { id: string; name: string } | null }) | null;
+      | (CallContact & {
+          note: string | null;
+          owner: { id: string; name: string } | null;
+          marketplace: {
+            id: string;
+            profileType: string | null;
+            verificationStatus: string | null;
+            listingsActive: number;
+            registeredAt: string;
+            removedAt: string | null;
+          } | null;
+        })
+      | null;
     createdAt: string;
     updatedAt: string;
     transcript: {
@@ -142,6 +154,7 @@ export type CallDetailsResponse = {
     } | null;
   };
   history: CallHistoryItem[];
+  marketplaceProfile: string | null;
 };
 
 export type Kpi = {
@@ -198,6 +211,52 @@ export type ContactRow = {
   owner: { id: string; name: string } | null;
   callsCount: number;
   lastCall: { startedAt: string; direction: CallDirection; status: CallStatus } | null;
+  marketplace: {
+    id: string;
+    profileType: string | null;
+    verificationStatus: string | null;
+    listingsActive: number;
+    lastSeenAt: string | null;
+    removedAt: string | null;
+  } | null;
+};
+
+export type MarketplaceAccountView = {
+  id: string;
+  publicId: number;
+  name: string | null;
+  email: string | null;
+  phoneVerified: boolean;
+  registeredAt: string;
+  accountStatus: string;
+  sellerActivatedAt: string | null;
+  lastSeenAt: string | null;
+  profileType: string | null;
+  profileName: string | null;
+  legalName: string | null;
+  city: string | null;
+  region: string | null;
+  verificationStatus: string | null;
+  moderationNote: string | null;
+  trustScore: number | null;
+  profileCompleteness: number | null;
+  listingsActive: number;
+  listingsDraft: number;
+  listingsPending: number;
+  listingsRejected: number;
+  listingsArchived: number;
+  listingsSold: number;
+  lastListingAt: string | null;
+  views30d: number;
+  leadsTotal: number;
+  threadsTotal: number;
+  dealsTotal: number;
+  reviewsCount: number;
+  reviewsAvg: number | null;
+  links: { type: string; url: string }[];
+  source: string | null;
+  removedAt: string | null;
+  syncedAt: string;
 };
 
 export type ContactListResponse = { items: ContactRow[]; nextCursor: string | null };
@@ -214,7 +273,9 @@ export type ContactDetailsResponse = {
     owner: { id: string; name: string; extension: string | null } | null;
     createdAt: string;
     updatedAt: string;
+    marketplace: MarketplaceAccountView | null;
   };
+  marketplaceLinks: { profile: string; admin: string | null } | null;
   calls: CallItem[];
   total: number;
   nextCursor: string | null;
