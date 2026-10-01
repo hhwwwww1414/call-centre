@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, Info, PenLine, PhoneOutgoing } from 'lucide-react';
+import { Check, PenLine, PhoneOutgoing } from 'lucide-react';
 import Link from 'next/link';
 import * as React from 'react';
 
@@ -134,13 +134,7 @@ export function TaskActivityDialog({
                   из {task.target}
                 </span>
               </p>
-              <span
-                className="text-2xs flex items-center gap-1 text-[var(--text-muted)]"
-                title={`${ru.taskMetricHint[task.metric]}. Один номер засчитывается один раз`}
-              >
-                <Info className="size-3.5" aria-hidden />
-                <span className="numeric">{task.percent}%</span>
-              </span>
+              <span className="numeric text-2xs text-[var(--text-muted)]">{task.percent}%</span>
             </div>
             <ProgressBar value={task.percent} label={task.title} />
             <div

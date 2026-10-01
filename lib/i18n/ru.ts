@@ -1,4 +1,3 @@
-import { MIN_RING_SECONDS, MIN_TALK_SECONDS } from '@/lib/call-rules';
 import { plural } from '@/lib/utils';
 
 /**
@@ -231,8 +230,6 @@ export const ru = {
     subtitle: 'Планы по звонкам и их выполнение',
     create: 'Поставить задачу',
     createTitle: 'Новая задача',
-    createHint:
-      'Прогресс считается сам по звонкам из телефонии — менеджеру ничего не нужно отмечать',
     name: 'Что сделать',
     namePlaceholder: 'Например, обзвонить базу по акции',
     description: 'Подробности',
@@ -241,11 +238,9 @@ export const ru = {
     target: 'Цель',
     targetHint: 'Сколько разных номеров нужно обработать',
     assignees: 'Исполнители',
-    assigneesHint: 'Каждому выбранному менеджеру — своя задача и свой счётчик',
     selectAll: 'Выбрать всех',
     clearAll: 'Снять выбор',
     dueAt: 'Срок',
-    dueAtHint: 'Звонки после срока в задачу не засчитываются',
     noDue: 'Без срока',
     created: (n: number) => (n > 1 ? `Задача поставлена ${n} менеджерам` : 'Задача поставлена'),
     tabActive: 'Активные',
@@ -291,12 +286,6 @@ export const ru = {
     CALLS: 'Совершённые звонки',
     ANSWERED: 'Дозвоны',
     SUCCESSFUL: 'Успешные звонки',
-  },
-
-  taskMetricHint: {
-    CALLS: `Исходящий, где ждали ответа от ${MIN_RING_SECONDS} с или соединились и указали итог. Автоответчик не считается`,
-    ANSWERED: `Разговор с человеком от ${MIN_TALK_SECONDS} с с указанным итогом. Автоответчик и «Сбросили» не считаются`,
-    SUCCESSFUL: `Разговор с человеком от ${MIN_TALK_SECONDS} с, отмеченный как успешный`,
   },
 
   taskStatus: {

@@ -10,7 +10,6 @@ import {
   Dialog,
   DialogBody,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -135,7 +134,6 @@ export function TaskCreateDialog({
         <form onSubmit={submit} noValidate>
           <DialogHeader>
             <DialogTitle>{ru.tasks.createTitle}</DialogTitle>
-            <DialogDescription>{ru.tasks.createHint}</DialogDescription>
           </DialogHeader>
 
           <DialogBody className="flex flex-col gap-4">
@@ -171,9 +169,6 @@ export function TaskCreateDialog({
                   >
                     <span className="text-xs font-medium text-[var(--foreground)]">
                       {ru.taskMetric[value]}
-                    </span>
-                    <span className="text-2xs text-[var(--text-muted)]">
-                      {ru.taskMetricHint[value]}
                     </span>
                   </button>
                 ))}
@@ -217,12 +212,7 @@ export function TaskCreateDialog({
               </div>
             </Field>
 
-            <Field
-              label={ru.tasks.assignees}
-              required
-              hint={ru.tasks.assigneesHint}
-              error={errors.assigneeIds}
-            >
+            <Field label={ru.tasks.assignees} required error={errors.assigneeIds}>
               <div className="rounded-lg border border-[var(--border)]">
                 <div className="flex items-center justify-between border-b border-[var(--border)] px-3 py-2">
                   <span className="text-2xs text-[var(--text-muted)]">
@@ -284,7 +274,7 @@ export function TaskCreateDialog({
               </div>
             </Field>
 
-            <Field label={ru.tasks.dueAt} hint={ru.tasks.dueAtHint} error={errors.dueAt}>
+            <Field label={ru.tasks.dueAt} error={errors.dueAt}>
               <div className="flex flex-wrap gap-2">
                 {DUE_PRESETS.map((preset) => (
                   <Chip
