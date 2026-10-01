@@ -115,6 +115,18 @@ export async function getCallForUser(user: SessionUser, callId: string) {
     where: { id: callId, ...callScopeFilter(user) },
     select: {
       ...CALL_LIST_SELECT,
+      // В карточке звонка клиента опознают и дополняют на месте
+      contact: {
+        select: {
+          id: true,
+          phoneE164: true,
+          name: true,
+          company: true,
+          note: true,
+          isBlocked: true,
+          owner: { select: { id: true, name: true } },
+        },
+      },
       rawPayload: false,
       createdAt: true,
       updatedAt: true,

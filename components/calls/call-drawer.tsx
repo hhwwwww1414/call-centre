@@ -23,7 +23,7 @@ import { Dialog, SheetContent } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/field';
 import { EmptyState, Skeleton } from '@/components/ui/misc';
 import { isNoConversation } from '@/lib/call-rules';
-import { useCall, useUpdateCall } from '@/lib/client/hooks';
+import { useCall, useUpdateCall, useUpdateContact } from '@/lib/client/hooks';
 import type { CallHistoryItem } from '@/lib/client/types';
 import { ru } from '@/lib/i18n/ru';
 import { formatPhone } from '@/lib/phone';
@@ -80,10 +80,9 @@ function DrawerBody({
 
   const { call, history } = data;
   const number = externalNumber(call);
-  const name = call.contact?.name;
+  const contact = call.contact;
+  const name = contact?.name;
   const meta = [
-    name ? formatPhone(number) : null,
-    call.contact?.company,
     ru.callDirection[call.direction],
     formatInZone(call.startedAt, timezone, 'short'),
     call.status === 'COMPLETED'
@@ -96,20 +95,22 @@ function DrawerBody({
 
   return (
     <>
-      <header className="flex items-center gap-3 border-b border-[var(--border)] px-5 py-4">
-        <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[var(--surface)]">
+      <header className="flex items-start gap-3 border-b border-[var(--border)] px-5 py-4">
+        <span className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-full bg-[var(--surface)]">
           <DirectionIcon direction={call.direction} status={call.status} />
         </span>
         <div className="min-w-0 flex-1">
-          <p
-            className={cn(
-              'truncate text-base font-semibold tracking-tight text-[var(--foreground)]',
-              !name && 'numeric',
-            )}
-          >
-            {name || formatPhone(number)}
+          <p className="truncate text-base font-semibold tracking-tight text-[var(--foreground)]">
+            {name || <span className="text-[var(--text-muted)]">Без имени</span>}
           </p>
-          <p className="numeric text-2xs mt-0.5 truncate text-[var(--text-muted)]">
+          {/* Номер виден всегда, даже когда клиент подписан */}
+          <p className="numeric mt-0.5 truncate text-sm text-[var(--text-secondary)]">
+            {formatPhone(number)}
+            {contact?.company ? (
+              <span className="text-[var(--text-muted)]"> · {contact.company}</span>
+            ) : null}
+          </p>
+          <p className="numeric text-2xs mt-1 truncate text-[var(--text-muted)]">
             {meta.join(' · ')}
           </p>
         </div>
@@ -123,6 +124,7 @@ function DrawerBody({
 
       <div className="flex-1 overflow-y-auto px-5 py-5">
         <div className="flex flex-col gap-6">
+          {contact ? <ContactFields contact={contact} /> : null}
           {call.recordingReady ? <AudioPlayer src={`/api/calls/${call.id}/recording`} /> : null}
           <CallEditors call={call} />
           <ContactHistory
@@ -413,6 +415,130 @@ function TagsEditor({ tags, onChange }: { tags: string[]; onChange: (tags: strin
         />
       </div>
     </div>
+  );
+}
+
+/**
+ * Кто на том конце: имя, компания, заметка. Менеджер дополняет их прямо
+ * из звонка — сохраняем, когда он уходит с поля.
+ */
+function ContactFields({
+  contact,
+}: {
+  contact: {
+    id: string;
+    name: string | null;
+    company: string | null;
+    note: string | null;
+    owner: { id: string; name: string } | null;
+  };
+}) {
+  const update = useUpdateContact(contact.id);
+  const save = (field: 'name' | 'company' | 'note', value: string) => {
+    if ((contact[field] ?? '') === value.trim()) return;
+    update.mutate(
+      { [field]: value.trim() || null },
+      {
+        onError: (error) =>
+          toast.error(error instanceof Error ? error.message : ru.errors.saveFailed),
+      },
+    );
+  };
+
+  return (
+    <section className="flex flex-col gap-2">
+      <SectionLabel
+        aside={
+          <span className="flex items-center gap-3">
+            {update.isPending ? (
+              <span className="text-2xs text-[var(--text-muted)]">{ru.common.saving}</span>
+            ) : null}
+            <Link
+              href={`/contacts/${contact.id}`}
+              className="text-2xs font-medium text-[var(--brand)] hover:underline dark:text-[var(--brand-text)]"
+            >
+              Карточка клиента
+            </Link>
+          </span>
+        }
+      >
+        Клиент
+        {contact.owner ? (
+          <span className="font-normal text-[var(--text-muted)]"> · {contact.owner.name}</span>
+        ) : null}
+      </SectionLabel>
+      <div className="grid gap-2 sm:grid-cols-2">
+        <InlineField
+          key={`name-${contact.id}-${contact.name ?? ''}`}
+          label="Имя или ФИО"
+          initial={contact.name ?? ''}
+          maxLength={120}
+          onCommit={(value) => save('name', value)}
+        />
+        <InlineField
+          key={`company-${contact.id}-${contact.company ?? ''}`}
+          label={ru.contacts.company}
+          initial={contact.company ?? ''}
+          maxLength={120}
+          onCommit={(value) => save('company', value)}
+        />
+      </div>
+      <InlineField
+        key={`note-${contact.id}-${contact.note ?? ''}`}
+        label="О клиенте"
+        initial={contact.note ?? ''}
+        maxLength={2000}
+        multiline
+        onCommit={(value) => save('note', value)}
+      />
+    </section>
+  );
+}
+
+function InlineField({
+  label,
+  initial,
+  maxLength,
+  multiline,
+  onCommit,
+}: {
+  label: string;
+  initial: string;
+  maxLength: number;
+  multiline?: boolean;
+  onCommit: (value: string) => void;
+}) {
+  const [value, setValue] = React.useState(initial);
+  const className =
+    'w-full rounded-[10px] border border-[var(--input)] bg-[var(--card)] px-3 text-sm text-[var(--foreground)] placeholder:text-[var(--text-muted)] transition-[border-color,box-shadow] duration-150 focus:border-[var(--ring)] focus:ring-4 focus:ring-[var(--brand-soft)] focus:outline-none';
+  const field = multiline ? (
+    <textarea
+      aria-label={label}
+      value={value}
+      rows={2}
+      maxLength={maxLength}
+      onChange={(event) => setValue(event.target.value)}
+      onBlur={() => onCommit(value)}
+      className={cn(className, 'resize-none py-2 leading-relaxed')}
+    />
+  ) : (
+    <input
+      aria-label={label}
+      value={value}
+      maxLength={maxLength}
+      onChange={(event) => setValue(event.target.value)}
+      onBlur={() => onCommit(value)}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter') event.currentTarget.blur();
+      }}
+      className={cn(className, 'h-10')}
+    />
+  );
+  return (
+    <label className="flex flex-col gap-1">
+      <span className="text-2xs text-[var(--text-muted)]">{label}</span>
+      {field}
+    </label>
   );
 }
 

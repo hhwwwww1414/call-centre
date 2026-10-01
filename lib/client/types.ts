@@ -128,7 +128,9 @@ export type CallHistoryItem = {
 };
 
 export type CallDetailsResponse = {
-  call: CallItem & {
+  call: Omit<CallItem, 'contact'> & {
+    contact:
+      (CallContact & { note: string | null; owner: { id: string; name: string } | null }) | null;
     createdAt: string;
     updatedAt: string;
     transcript: {
