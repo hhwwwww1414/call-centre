@@ -1,11 +1,12 @@
 'use client';
 
 import type { Role } from '@prisma/client';
-import { Ban, Users } from 'lucide-react';
+import { Ban, Plus, Users } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import * as React from 'react';
 
 import { DirectionIcon } from '@/components/calls/call-presentation';
+import { ContactCreateDialog } from '@/components/contacts/contact-create-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -35,6 +36,7 @@ export function ContactsScreen({ timezone, role }: { timezone: string; role: Rol
   const [owner, setOwner] = React.useState(ALL_OWNERS);
   const debounced = useDebounced(search);
   const assignees = useTaskAssignees(canAssign);
+  const [createOpen, setCreateOpen] = React.useState(false);
 
   const params = React.useMemo(
     () => ({
@@ -87,7 +89,16 @@ export function ContactsScreen({ timezone, role }: { timezone: string; role: Rol
           />
           {ru.contacts.blocked}
         </label>
+        <Button
+          variant="primary"
+          className="ml-auto max-sm:w-full"
+          onClick={() => setCreateOpen(true)}
+        >
+          <Plus aria-hidden />
+          Новый контакт
+        </Button>
       </div>
+      <ContactCreateDialog open={createOpen} onOpenChange={setCreateOpen} />
 
       <Card className="overflow-hidden max-md:border-0 max-md:bg-transparent max-md:shadow-none">
         {isLoading ? (

@@ -326,3 +326,14 @@ describe('правка пользователя', () => {
     expect(() => userUpdateSchema.parse({ personalNumber: '123' })).toThrow();
   });
 });
+
+describe('новый контакт вручную', () => {
+  it('номер обязателен, проверяется и приводится к +7', async () => {
+    const { contactCreateSchema } = await import('@/lib/validation');
+    expect(contactCreateSchema.safeParse({}).success).toBe(false);
+    expect(contactCreateSchema.safeParse({ phone: '123' }).success).toBe(false);
+    const ok = contactCreateSchema.parse({ phone: '8 (999) 123-45-67', name: ' Иван ' });
+    expect(ok.phone).toBe('+79991234567');
+    expect(ok.name).toBe('Иван');
+  });
+});

@@ -126,6 +126,18 @@ export const taskFiltersSchema = z.object({
   userId: z.string().optional(),
 });
 
+export const contactCreateSchema = z.object({
+  phone: z
+    .string({ message: 'Укажите номер телефона' })
+    .trim()
+    .min(1, 'Укажите номер телефона')
+    .refine((v) => isValidPhone(v), 'Проверьте номер телефона')
+    .transform((v) => toE164(v)),
+  name: z.string().trim().max(120).optional(),
+  company: z.string().trim().max(120).optional(),
+  note: z.string().trim().max(2000).optional(),
+});
+
 export const contactUpdateSchema = z.object({
   name: z.string().trim().max(120).nullish(),
   company: z.string().trim().max(120).nullish(),

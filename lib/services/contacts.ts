@@ -2,7 +2,7 @@ import type { Prisma } from '@prisma/client';
 import { z } from 'zod';
 
 import { notFound } from '@/lib/api';
-import { callScopeFilter, canSeeAllCalls, type SessionUser } from '@/lib/auth/scope';
+import { callScopeFilter, type SessionUser } from '@/lib/auth/scope';
 import { prisma } from '@/lib/db';
 
 export const CONTACT_SELECT = {
@@ -24,15 +24,13 @@ export const contactHistorySchema = z.object({
   cursor: z.string().min(1).max(100).optional(),
 });
 
-export function contactAccessWhere(user: SessionUser, id: string): Prisma.ContactWhereInput {
-  return {
-    id,
-    ...(canSeeAllCalls(user.role)
-      ? {}
-      : {
-          OR: [{ calls: { some: { userId: user.id } } }, { ownerId: user.id }],
-        }),
-  };
+/**
+ * База клиентов общая: менеджер видит и дополняет любой контакт, чтобы не
+ * звонить тому, с кем уже работает коллега. Звонки при этом видны по своим
+ * правам — чужие разговоры менеджеру не открываются.
+ */
+export function contactAccessWhere(_user: SessionUser, id: string): Prisma.ContactWhereInput {
+  return { id };
 }
 
 export async function assertContactAccess(user: SessionUser, id: string) {

@@ -50,9 +50,8 @@ describe('client workspace access', () => {
         userId: manager.id,
       });
     }
-    expect(contactAccessWhere(manager, 'client')).toMatchObject({
-      OR: [{ calls: { some: { userId: manager.id } } }, { ownerId: manager.id }],
-    });
+    // Сам контакт виден всем — база клиентов общая; звонки остаются личными
+    expect(contactAccessWhere(manager, 'client')).toEqual({ id: 'client' });
   });
 
   it.each(['ADMIN', 'SUPERVISOR'] as const)('lets %s review all client calls', (role) => {

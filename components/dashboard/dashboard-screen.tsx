@@ -184,12 +184,7 @@ export function DashboardScreen({ role, timezone }: { role: Role; timezone: stri
         {/* Главный рабочий блок менеджера — заметный и первый по порядку (ТЗ 5.3) */}
         <Card className="border-[var(--brand)]/25 lg:order-first">
           <CardHeader>
-            <div>
-              <CardTitle>{ru.dashboard.callbackQueue}</CardTitle>
-              <p className="text-2xs mt-0.5 text-[var(--text-muted)]">
-                {ru.dashboard.callbackQueueHint}
-              </p>
-            </div>
+            <CardTitle>{ru.dashboard.callbackQueue}</CardTitle>
           </CardHeader>
           <CardContent className="px-0 sm:px-0">
             {isLoading ? (

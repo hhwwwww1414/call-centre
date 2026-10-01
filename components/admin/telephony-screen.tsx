@@ -239,26 +239,6 @@ export function TelephonyScreen({ timezone }: { timezone: string }) {
         </Card>
       </div>
 
-      {data.provider !== 'exolve' ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>{ru.telephony.sipuniSetup}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ol className="flex flex-col gap-2.5">
-              {ru.telephony.sipuniSetupSteps.map((step, index) => (
-                <li key={step} className="flex gap-3 text-xs text-[var(--text-secondary)]">
-                  <span className="numeric text-2xs flex size-5 shrink-0 items-center justify-center rounded-full bg-[var(--brand-soft)] font-semibold text-[var(--brand)] dark:text-[var(--brand-text)]">
-                    {index + 1}
-                  </span>
-                  <span className="pt-0.5">{step}</span>
-                </li>
-              ))}
-            </ol>
-          </CardContent>
-        </Card>
-      ) : null}
-
       <Card>
         <CardHeader>
           <CardTitle>{ru.telephony.generateTestCall}</CardTitle>

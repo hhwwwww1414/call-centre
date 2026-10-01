@@ -271,7 +271,7 @@ function OwnerField({
 
   if (canAssign) {
     return (
-      <Field label={ru.contacts.owner} htmlFor="contact-owner" hint={ru.contacts.ownerHint}>
+      <Field label={ru.contacts.owner} htmlFor="contact-owner">
         <Select
           value={ownerId ?? NO_OWNER}
           onValueChange={(value) => onChange(value === NO_OWNER ? null : value)}
@@ -312,9 +312,6 @@ function OwnerField({
           </Button>
         ) : null}
       </div>
-      <p className="text-2xs text-[var(--text-muted)]">
-        {ownerId ? ru.contacts.ownerHint : ru.contacts.ownerAuto}
-      </p>
     </div>
   );
 }

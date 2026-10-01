@@ -230,6 +230,17 @@ export function useContactAudit(id: string, enabled: boolean) {
   });
 }
 
+export function useCreateContact() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { phone: string; name?: string; company?: string; note?: string }) =>
+      apiFetch<{ id: string }>('/api/contacts', { method: 'POST', body: JSON.stringify(input) }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['contacts'] });
+    },
+  });
+}
+
 export function useUpdateContact(id: string) {
   const queryClient = useQueryClient();
   return useMutation({

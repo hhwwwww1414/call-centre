@@ -28,6 +28,7 @@ export type AuditAction =
   | 'task.update'
   | 'task.cancel'
   | 'task.delete'
+  | 'contact.create'
   | 'contact.update'
   | 'contact.owner.update'
   | 'contact.block'
